@@ -45,3 +45,6 @@ desktop.ini
 *.log
 tmp/
 .tmp/
+
+# Local audit notes, not versioned
+AUDIT.md
