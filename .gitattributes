@@ -1,0 +1,12 @@
+# Normalize line endings to LF in the repository.
+* text=auto eol=lf
+
+*.sh      text eol=lf
+*.tpl     text eol=lf
+*.tf      text eol=lf
+Makefile  text eol=lf
+
+# Binary assets (add as needed).
+*.png binary
+*.jpg binary
+*.svg text

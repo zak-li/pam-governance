@@ -1,0 +1,13 @@
+# Copy this file to `terraform.tfvars` and fill in your values.
+# NEVER commit terraform.tfvars (it contains secrets).
+
+# --- Auth0 "HCP Vault OIDC" application (regular web app) ---
+auth0_domain        = "dev-k5xncag6gzsmst88.eu.auth0.com"
+auth0_client_id     = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+auth0_client_secret = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+
+# --- Allowed public IP (NSG allow-list). Set your current public IP. ---
+admin_source_ip = "196.75.81.68"
+
+# --- SPA frontend URL (Auth0 callbacks/origins) ---
+frontend_url = "http://localhost:8080"

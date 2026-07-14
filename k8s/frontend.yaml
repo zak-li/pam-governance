@@ -1,0 +1,218 @@
+# =====================================================================
+#  PAM Governance - Frontend workload (Zero-Trust hardened)
+#  Kong Gateway (north-south, edge LoadBalancer) + Istio mesh (mTLS)
+#  The namespace does not use the 'restricted' PSA, because the Istio
+#  init container (istio-init) needs NET_ADMIN/NET_RAW to program iptables.
+#  Hardening is applied to the application container via its securityContext.
+# =====================================================================
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: pam-governance
+  labels:
+    istio-injection: enabled        # sidecar injection for automatic mTLS
+---
+# --- Mesh policy: mTLS between meshed services ---
+# PERMISSIVE rather than STRICT: Kong (OpenResty) opens its upstream connections
+# in a way its sidecar does not always upgrade to mTLS, so STRICT breaks the
+# Kong->frontend hop with a 503. In PERMISSIVE mode Istio auto-mTLS still
+# encrypts all traffic between pods that carry a sidecar; only the Kong edge can
+# fall back to plaintext inside the cluster. For strict end-to-end mTLS,
+# terminate at an Istio IngressGateway instead of Kong.
+apiVersion: security.istio.io/v1
+kind: PeerAuthentication
+metadata:
+  name: default-mtls
+  namespace: pam-governance
+spec:
+  mtls:
+    mode: PERMISSIVE
+---
+# --- Originate mTLS to the frontend for meshed clients ---
+apiVersion: networking.istio.io/v1
+kind: DestinationRule
+metadata:
+  name: frontend-mtls
+  namespace: pam-governance
+spec:
+  host: frontend-service.pam-governance.svc.cluster.local
+  trafficPolicy:
+    tls:
+      mode: ISTIO_MUTUAL
+---
+# --- Hardened nginx config: non-root (8080), security headers, strict CSP ---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-conf
+  namespace: pam-governance
+data:
+  default.conf: |
+    server {
+        listen 8080;
+        server_name _;
+        root /usr/share/nginx/html;
+        index index.html;
+        server_tokens off;
+        autoindex off;
+
+        # --- Security headers (high level) ---
+        add_header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload" always;
+        add_header X-Frame-Options "DENY" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header Referrer-Policy "no-referrer" always;
+        add_header Permissions-Policy "geolocation=(), microphone=(), camera=(), payment=(), usb=(), interest-cohort=()" always;
+        add_header Cross-Origin-Opener-Policy "same-origin" always;
+        add_header Cross-Origin-Resource-Policy "same-origin" always;
+        add_header X-Permitted-Cross-Domain-Policies "none" always;
+        # No caching, which prevents the bfcache from restoring an authenticated view
+        add_header Cache-Control "no-store, no-cache, must-revalidate, max-age=0" always;
+        add_header Pragma "no-cache" always;
+        add_header Content-Security-Policy "default-src 'self'; script-src 'self' https://cdn.auth0.com; worker-src 'self' blob:; child-src 'self' blob:; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src https://fonts.gstatic.com; img-src 'self' https: data:; connect-src 'self' https://dev-k5xncag6gzsmst88.eu.auth0.com; frame-src https://dev-k5xncag6gzsmst88.eu.auth0.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'; upgrade-insecure-requests" always;
+
+        # Deny access to hidden files
+        location ~ /\. { deny all; }
+
+        location / {
+            try_files $uri $uri/ /index.html;
+        }
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  namespace: pam-governance
+  labels:
+    app: frontend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 101
+        runAsGroup: 101
+        fsGroup: 101
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: nginx
+          image: nginxinc/nginx-unprivileged:1.27-alpine
+          ports:
+            - containerPort: 8080
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests: { cpu: "25m", memory: "48Mi" }
+            limits:   { cpu: "200m", memory: "128Mi" }
+          livenessProbe:
+            httpGet: { path: /, port: 8080 }
+            initialDelaySeconds: 5
+            periodSeconds: 15
+          readinessProbe:
+            httpGet: { path: /, port: 8080 }
+            initialDelaySeconds: 3
+            periodSeconds: 10
+          volumeMounts:
+            - { name: frontend-volume, mountPath: /usr/share/nginx/html, readOnly: true }
+            - { name: nginx-conf, mountPath: /etc/nginx/conf.d, readOnly: true }
+            - { name: tmp, mountPath: /tmp }
+            - { name: cache, mountPath: /var/cache/nginx }
+            - { name: run, mountPath: /var/run }
+      volumes:
+        - name: frontend-volume
+          configMap: { name: frontend-files }
+        - name: nginx-conf
+          configMap: { name: nginx-conf }
+        - name: tmp
+          emptyDir: {}
+        - name: cache
+          emptyDir: {}
+        - name: run
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-service
+  namespace: pam-governance
+  labels: { app: frontend }
+  annotations:
+    # Kong route via la ClusterIP (pas les IP de pods) -> l'auto-mTLS Istio
+    # s'applique (sinon Kong tape en clair sur les endpoints).
+    ingress.kubernetes.io/service-upstream: "true"
+    konghq.com/service-upstream: "true"
+spec:
+  type: ClusterIP
+  ports:
+    - { name: http, port: 80, targetPort: 8080 }
+  selector:
+    app: frontend
+---
+# --- NetworkPolicy: ingress limited to Kong and the Istio control plane ---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: frontend-boundary
+  namespace: pam-governance
+spec:
+  podSelector:
+    matchLabels: { app: frontend }
+  policyTypes: ["Ingress", "Egress"]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kong
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: istio-system
+  # Egress is open, which the Istio sidecar needs to reach istiod, DNS and the API.
+  # The attack surface of a static frontend is on ingress, which is locked down.
+  egress:
+    - {}
+---
+# --- Kong: edge rate limiting (anti brute-force and abuse) ---
+apiVersion: configuration.konghq.com/v1
+kind: KongPlugin
+metadata:
+  name: rate-limit
+  namespace: pam-governance
+config:
+  minute: 60
+  policy: local
+plugin: rate-limiting
+---
+# --- Kong: ingress API gateway (north-south) ---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: frontend-ingress
+  namespace: pam-governance
+  annotations:
+    konghq.com/plugins: rate-limit
+    konghq.com/protocols: "https"                # n'accepte que HTTPS
+    konghq.com/https-redirect-status-code: "301" # redirige http -> https
+spec:
+  ingressClassName: kong
+  rules:
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend-service
+                port:
+                  number: 80

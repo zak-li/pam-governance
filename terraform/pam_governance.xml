@@ -1,0 +1,172 @@
+<dashboard theme="dark" version="1.1">
+  <label>PAM Governance - Forensic Audit</label>
+  <description>Privileged access monitoring for HashiCorp Vault and identity governance under Zero-Trust</description>
+
+  <fieldset submitButton="false" autoRun="true">
+    <input type="time" token="tr">
+      <label>Time range</label>
+      <default>
+        <earliest>-24h@h</earliest>
+        <latest>now</latest>
+      </default>
+    </input>
+  </fieldset>
+
+  <!-- ===================== KPI ROW ===================== -->
+  <row>
+    <panel>
+      <title>Audit events</title>
+      <single>
+        <search>
+          <query>index=pam_audit sourcetype=vault_audit | spath | search type=response | stats count</query>
+          <earliest>$tr.earliest$</earliest>
+          <latest>$tr.latest$</latest>
+        </search>
+        <option name="colorBy">value</option>
+        <option name="rangeColors">["0x006d9c","0x006d9c"]</option>
+        <option name="drilldown">none</option>
+        <option name="numberPrecision">0</option>
+        <option name="underLabel">privileged requests</option>
+      </single>
+    </panel>
+    <panel>
+      <title>Unique identities</title>
+      <single>
+        <search>
+          <query>index=pam_audit sourcetype=vault_audit | spath | stats dc(auth.display_name)</query>
+          <earliest>$tr.earliest$</earliest>
+          <latest>$tr.latest$</latest>
+        </search>
+        <option name="colorBy">value</option>
+        <option name="rangeColors">["0x53a051","0x53a051"]</option>
+        <option name="drilldown">none</option>
+        <option name="underLabel">authenticated actors</option>
+      </single>
+    </panel>
+    <panel>
+      <title>Denials and errors</title>
+      <single>
+        <search>
+          <query>index=pam_audit sourcetype=vault_audit | spath | search error=* error!="" | stats count</query>
+          <earliest>$tr.earliest$</earliest>
+          <latest>$tr.latest$</latest>
+        </search>
+        <option name="colorBy">value</option>
+        <option name="rangeColors">["0x53a051","0xf8be34","0xdc4e41"]</option>
+        <option name="rangeValues">[1,10]</option>
+        <option name="useColors">1</option>
+        <option name="drilldown">none</option>
+        <option name="underLabel">ACL denied</option>
+      </single>
+    </panel>
+    <panel>
+      <title>SSH certificates signed</title>
+      <single>
+        <search>
+          <query>index=pam_audit sourcetype=vault_audit | spath | search request.path="ssh/sign/*" type=response | stats count</query>
+          <earliest>$tr.earliest$</earliest>
+          <latest>$tr.latest$</latest>
+        </search>
+        <option name="colorBy">value</option>
+        <option name="rangeColors">["0x006d9c","0x006d9c"]</option>
+        <option name="drilldown">none</option>
+        <option name="underLabel">dynamic access</option>
+      </single>
+    </panel>
+  </row>
+
+  <!-- ===================== TIMECHART ===================== -->
+  <row>
+    <panel>
+      <title>Audit activity over time (by operation)</title>
+      <chart>
+        <search>
+          <query>index=pam_audit sourcetype=vault_audit | spath | search type=response | timechart count by request.operation</query>
+          <earliest>$tr.earliest$</earliest>
+          <latest>$tr.latest$</latest>
+        </search>
+        <option name="charting.chart">area</option>
+        <option name="charting.chart.stackMode">stacked</option>
+        <option name="charting.legend.placement">right</option>
+        <option name="charting.drilldown">none</option>
+        <option name="height">280</option>
+      </chart>
+    </panel>
+  </row>
+
+  <!-- ===================== OPS + TOP PATHS ===================== -->
+  <row>
+    <panel>
+      <title>Operations breakdown</title>
+      <chart>
+        <search>
+          <query>index=pam_audit sourcetype=vault_audit | spath | search type=response request.operation=* | stats count by request.operation | sort - count</query>
+          <earliest>$tr.earliest$</earliest>
+          <latest>$tr.latest$</latest>
+        </search>
+        <option name="charting.chart">pie</option>
+        <option name="charting.drilldown">none</option>
+        <option name="height">300</option>
+      </chart>
+    </panel>
+    <panel>
+      <title>Most accessed secret paths</title>
+      <chart>
+        <search>
+          <query>index=pam_audit sourcetype=vault_audit | spath | search type=response request.path=* | top limit=10 request.path</query>
+          <earliest>$tr.earliest$</earliest>
+          <latest>$tr.latest$</latest>
+        </search>
+        <option name="charting.chart">bar</option>
+        <option name="charting.drilldown">none</option>
+        <option name="height">300</option>
+      </chart>
+    </panel>
+  </row>
+
+  <!-- ===================== AUTH + DENIED ===================== -->
+  <row>
+    <panel>
+      <title>Authentications and auth operations (OIDC / token)</title>
+      <chart>
+        <search>
+          <query>index=pam_audit sourcetype=vault_audit | spath | search type=response request.path="auth/*" | timechart count by request.path</query>
+          <earliest>$tr.earliest$</earliest>
+          <latest>$tr.latest$</latest>
+        </search>
+        <option name="charting.chart">column</option>
+        <option name="charting.legend.placement">bottom</option>
+        <option name="charting.drilldown">none</option>
+        <option name="height">280</option>
+      </chart>
+    </panel>
+    <panel>
+      <title>Denied requests (forensic)</title>
+      <table>
+        <search>
+          <query>index=pam_audit sourcetype=vault_audit | spath | search error!="" | eval user=coalesce('auth.display_name',"anonymous") | table _time user request.operation request.path error | sort - _time | head 20</query>
+          <earliest>$tr.earliest$</earliest>
+          <latest>$tr.latest$</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="count">10</option>
+      </table>
+    </panel>
+  </row>
+
+  <!-- ===================== RECENT ACTIVITY ===================== -->
+  <row>
+    <panel>
+      <title>Recent privileged activity</title>
+      <table>
+        <search>
+          <query>index=pam_audit sourcetype=vault_audit | spath | search type=response | eval user=coalesce('auth.display_name',"root") | table _time user request.operation request.path request.remote_address | sort - _time | head 50</query>
+          <earliest>$tr.earliest$</earliest>
+          <latest>$tr.latest$</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="count">20</option>
+      </table>
+    </panel>
+  </row>
+</dashboard>
