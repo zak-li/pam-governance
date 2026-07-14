@@ -10,31 +10,58 @@ exec > /var/log/pam-bootstrap.log 2>&1
 #  - Dynamic secrets engines (SSH CA, database, transit, KV v2)
 #  - Auth0 OIDC SSO with RBAC tiers (admin / operator)
 #  - Splunk (SIEM) with forensic ingestion of Vault + host audit logs
-#  - Unseal key & root token stored in Azure Key Vault (not on disk)
+#  - Unseal keys stored in Azure Key Vault (not on disk); no standing root
+#  - Secrets are pulled from Key Vault at boot, never shipped in custom_data
 # =====================================================================
 
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -y
-apt-get install -y wget curl unzip python3 lsb-release libcap2-bin
+apt-get install -y wget curl unzip python3 lsb-release docker.io
 
-# ---------------------------------------------------------------------
-# Splunk admin password (may contain shell metacharacters): write it via
-# a *quoted* heredoc so bash performs no expansion, then read it back.
-# ---------------------------------------------------------------------
-# No global `umask 077` here, since it would make /etc/vault.d and vault.hcl
-# unreadable by the 'vault' user. The file is secured explicitly instead.
-cat > /root/.splunk_pw <<'PWEOF'
-${admin_password}
-PWEOF
-chmod 600 /root/.splunk_pw
-SPLUNK_PW="$(head -n1 /root/.splunk_pw)"
+# =====================================================================
+#  Managed-identity helpers for Azure Key Vault (IMDS)
+# =====================================================================
+kv_token() {
+  curl -s -H "Metadata:true" \
+    "http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-01&resource=https%3A%2F%2Fvault.azure.net&client_id=${identity_client_id}" \
+    | python3 -c "import sys,json;print(json.load(sys.stdin).get('access_token',''))"
+}
+
+get_kv_secret() { # $1 = secret name -> prints value (retries)
+  local name="$1" token val
+  for _ in 1 2 3 4 5 6; do
+    token="$(kv_token)"
+    if [ -n "$token" ]; then
+      val="$(curl -s "https://${key_vault_name}.vault.azure.net/secrets/$name?api-version=7.4" \
+        -H "Authorization: Bearer $token" \
+        | python3 -c "import sys,json;print(json.load(sys.stdin).get('value',''))")"
+      [ -n "$val" ] && { printf '%s' "$val"; return 0; }
+    fi
+    sleep 5
+  done
+  return 1
+}
+
+put_kv_secret() { # $1 = name, $2 = value
+  local name="$1" value="$2" token
+  token="$(kv_token)"
+  [ -n "$token" ] || return 1
+  curl -s -X PUT "https://${key_vault_name}.vault.azure.net/secrets/$name?api-version=7.4" \
+    -H "Authorization: Bearer $token" -H "Content-Type: application/json" \
+    -d "$(python3 -c "import json,sys;print(json.dumps({'value':sys.argv[1]}))" "$value")" >/dev/null
+}
+
+# --- Secrets pulled from Key Vault instead of custom_data (least exposure) ---
+SPLUNK_PW="$(get_kv_secret splunk-admin-password)"
+AUTH0_CLIENT_SECRET="$(get_kv_secret auth0-client-secret)"
+VAULT_TLS_KEY="$(get_kv_secret vault-tls-key)"
 
 # =====================================================================
 # 1. INSTALL HASHICORP VAULT  (official binary, robust, no APT/GPG repo)
 # =====================================================================
 VAULT_VERSION="1.17.6"
 for attempt in 1 2 3; do
-  curl -fsSL -o /tmp/vault.zip "https://releases.hashicorp.com/vault/1.17.6/vault_1.17.6_linux_amd64.zip" && break
+  curl -fsSL -o /tmp/vault.zip "https://releases.hashicorp.com/vault/$${VAULT_VERSION}/vault_$${VAULT_VERSION}_linux_amd64.zip" && break
   sleep 5
 done
 unzip -o /tmp/vault.zip -d /usr/bin/
@@ -44,14 +71,12 @@ id vault >/dev/null 2>&1 || useradd --system --home /etc/vault.d --shell /bin/fa
 mkdir -p /etc/vault.d
 vault --version
 
-# ---- TLS material (generated & injected by Terraform) ----
+# ---- TLS material: public cert from Terraform, private key from Key Vault ----
 mkdir -p /opt/vault/data /opt/vault/tls /opt/vault/audit
 cat <<EOF > /opt/vault/tls/tls.crt
 ${vault_cert}
 EOF
-cat <<EOF > /opt/vault/tls/tls.key
-${vault_key}
-EOF
+printf '%s' "$VAULT_TLS_KEY" > /opt/vault/tls/tls.key
 chmod 640 /opt/vault/tls/tls.crt
 chmod 600 /opt/vault/tls/tls.key
 chown -R vault:vault /opt/vault
@@ -127,7 +152,7 @@ for i in $(seq 1 30); do
 done
 
 # =====================================================================
-# 2. AUTO-INITIALISE & UNSEAL  (keys go to Azure Key Vault, not disk)
+# 2. AUTO-INITIALISE & UNSEAL  (unseal keys go to Azure Key Vault, not disk)
 # =====================================================================
 vault operator init -key-shares=5 -key-threshold=3 -format=json > /opt/vault/init.json
 chmod 600 /opt/vault/init.json
@@ -142,25 +167,10 @@ done
 ROOT_TOKEN=$(python3 -c "import json;print(json.load(open('/opt/vault/init.json'))['root_token'])")
 vault login "$ROOT_TOKEN" >/dev/null
 
-# ---- Push unseal keys + root token into Azure Key Vault via Managed Identity ----
-push_kv_secret() {
-  local name="$1"; local value="$2"
-  local token
-  token=$(curl -s -H "Metadata:true" \
-    "http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-01&resource=https%3A%2F%2Fvault.azure.net&client_id=${identity_client_id}" \
-    | python3 -c "import sys,json;print(json.load(sys.stdin).get('access_token',''))")
-  if [ -n "$token" ] && [ -n "${key_vault_name}" ]; then
-    curl -s -X PUT "https://${key_vault_name}.vault.azure.net/secrets/$name?api-version=7.4" \
-      -H "Authorization: Bearer $token" -H "Content-Type: application/json" \
-      -d "$(python3 -c "import json,sys;print(json.dumps({'value':sys.argv[1]}))" "$value")" >/dev/null || true
-  fi
-}
-if [ -n "${key_vault_name}" ]; then
-  push_kv_secret "vault-root-token" "$ROOT_TOKEN"
-  push_kv_secret "vault-unseal-keys" "$(cat /opt/vault/init.json)"
-  # Local copy no longer required once escrowed in Key Vault
-  shred -u /opt/vault/init.json 2>/dev/null || rm -f /opt/vault/init.json
-fi
+# Escrow only the unseal keys (no standing root token). Break-glass root is
+# regenerated on demand with generate-root using these keys.
+put_kv_secret "vault-unseal-keys" "$(cat /opt/vault/init.json)"
+shred -u /opt/vault/init.json 2>/dev/null || rm -f /opt/vault/init.json
 
 # =====================================================================
 # 3. FORENSIC AUDIT LOGGING (file device -> monitored by Splunk)
@@ -190,7 +200,8 @@ vault write ssh/roles/pam-ssh-role - <<'EOF'
 }
 EOF
 
-# Database engine (dynamic DB credentials) - enabled, ready to be wired
+# Database engine mounted for on-demand database credentials. Wire it to a real
+# database with `vault write database/config/...` and `database/roles/...`.
 vault secrets enable -path=database database || true
 
 # Transit engine (encryption-as-a-service; no key sprawl)
@@ -252,7 +263,7 @@ vault auth enable oidc || true
 vault write auth/oidc/config \
     oidc_discovery_url="https://${auth0_domain}/" \
     oidc_client_id="${auth0_client_id}" \
-    oidc_client_secret="${auth0_client_secret}" \
+    oidc_client_secret="$AUTH0_CLIENT_SECRET" \
     default_role="pam-operator-role"
 
 # Operator role = default. Any successfully-authenticated Auth0 user lands
@@ -269,7 +280,7 @@ vault write auth/oidc/role/pam-operator-role \
 
 # Admin role = gated on the "PAM_Administrator" group claim delivered by the
 # Auth0 post-login Action. Users without the group cannot assume it.
-# Admin role via stdin JSON (the key=value form does not parse nested bound_claims)
+# Stdin JSON form (the key=value form does not parse nested bound_claims).
 vault write auth/oidc/role/pam-admin-role - <<'JSON'
 {
   "bound_audiences": "${auth0_client_id}",
@@ -285,33 +296,35 @@ vault write auth/oidc/role/pam-admin-role - <<'JSON'
 }
 JSON
 
-# Map the Auth0 group -> Vault admin policy via an external group.
-vault write identity/group name="PAM_Administrator" type="external" \
-    policies="pam-admin-policy" || true
-
 # =====================================================================
-# 7. SECURITY CLEANUP
+# 7. ZERO STANDING ROOT
 # =====================================================================
-# The root token stays escrowed in Azure Key Vault for break-glass administration;
-# it is only removed from the script environment. For a zero standing root
-# posture, revoke it and regenerate it on demand with generate-root.
+# All configuration is done. Revoke the initial root token so there is no
+# standing root. Break-glass root is regenerated on demand with
+# `vault operator generate-root` and the unseal keys escrowed in Key Vault.
+vault token revoke -self || true
 unset ROOT_TOKEN
 
 # =====================================================================
-# 8. SPLUNK ENTERPRISE (SIEM) via Docker  +  ingestion forensique
-#    Official image avoids versioned .deb URLs that expire and 404.
+# 8. SPLUNK ENTERPRISE (SIEM) via Docker  +  forensic ingestion
+#    Pinned image, persistent data/config volumes.
 # =====================================================================
-curl -fsSL https://get.docker.com | sh
 systemctl enable --now docker
 
+# Persistent host directories (owned by the splunk container uid 41812)
+mkdir -p /opt/splunk-data/var /opt/splunk-data/etc
+chown -R 41812:41812 /opt/splunk-data
+
 docker run -d --name splunk --restart unless-stopped \
-  -p 8000:8000 -p 8088:8088 \
+  -p 8000:8000 \
   -e SPLUNK_GENERAL_TERMS="--accept-sgt-current-at-splunk-com" \
   -e SPLUNK_START_ARGS="--accept-license" \
   -e SPLUNK_PASSWORD="$SPLUNK_PW" \
+  -v /opt/splunk-data/var:/opt/splunk/var \
+  -v /opt/splunk-data/etc:/opt/splunk/etc \
   -v /opt/vault/audit:/var/log/vault:ro \
   -v /var/log:/var/log/host:ro \
-  splunk/splunk:latest
+  splunk/splunk:9.3
 
 # Wait for Splunk to be ready (the image initializes in about 1 to 2 minutes)
 for i in $(seq 1 60); do
@@ -363,14 +376,10 @@ indicator:single_cpu_percentage:yellow = 40
 indicator:single_cpu_percentage:red = 70
 HC
 
-# Preinstalled forensic dashboard
+# Preinstalled forensic dashboard (base64-decoded to avoid heredoc/interp risk)
 docker exec -u root splunk mkdir -p /opt/splunk/etc/apps/search/local/data/ui/views
-docker exec -i -u root splunk bash -c 'cat > /opt/splunk/etc/apps/search/local/data/ui/views/pam_governance.xml' <<'DASH'
-${splunk_dashboard}
-DASH
+printf '%s' "${splunk_dashboard}" | base64 -d \
+  | docker exec -i -u root splunk bash -c 'cat > /opt/splunk/etc/apps/search/local/data/ui/views/pam_governance.xml'
 
 docker exec -u root splunk chown -R splunk:splunk /opt/splunk/etc/system/local /opt/splunk/etc/apps/search/local/data
 docker restart splunk || true
-
-# Wipe the transient Splunk password file
-shred -u /root/.splunk_pw 2>/dev/null || rm -f /root/.splunk_pw

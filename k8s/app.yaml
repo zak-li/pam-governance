@@ -149,8 +149,8 @@ metadata:
   namespace: pam-governance
   labels: { app: app }
   annotations:
-    # Kong route via la ClusterIP (pas les IP de pods) -> l'auto-mTLS Istio
-    # s'applique (sinon Kong tape en clair sur les endpoints).
+    # Route through the ClusterIP (not pod IPs) so Istio auto-mTLS applies to the
+    # Kong-to-app hop (otherwise Kong talks plaintext to the endpoints).
     ingress.kubernetes.io/service-upstream: "true"
     konghq.com/service-upstream: "true"
 spec:
@@ -202,8 +202,8 @@ metadata:
   namespace: pam-governance
   annotations:
     konghq.com/plugins: rate-limit
-    konghq.com/protocols: "https"                # n'accepte que HTTPS
-    konghq.com/https-redirect-status-code: "301" # redirige http -> https
+    konghq.com/protocols: "https"                # accept HTTPS only
+    konghq.com/https-redirect-status-code: "301" # redirect http to https
 spec:
   ingressClassName: kong
   rules:

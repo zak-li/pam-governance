@@ -33,6 +33,38 @@ jobs:
       - name: Validate
         run: terraform validate
 
+  tflint:
+    name: tflint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: terraform-linters/setup-tflint@v4
+      - run: tflint --init
+      - run: tflint --chdir=terraform -f compact
+
+  tfsec:
+    name: tfsec security scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run tfsec
+        uses: aquasecurity/tfsec-action@v1.0.3
+        with:
+          working_directory: terraform
+          soft_fail: false
+
+  kubeconform:
+    name: Validate Kubernetes manifests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install kubeconform
+        run: |
+          curl -sSLo /tmp/kc.tgz https://github.com/yannh/kubeconform/releases/latest/download/kubeconform-linux-amd64.tar.gz
+          tar -xzf /tmp/kc.tgz -C /usr/local/bin kubeconform
+      - name: Validate (ignore CRDs from Istio and Kong)
+        run: kubeconform -strict -ignore-missing-schemas -summary k8s/app.yaml
+
   shellcheck:
     name: Shellcheck
     runs-on: ubuntu-latest

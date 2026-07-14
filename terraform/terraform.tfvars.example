@@ -2,12 +2,19 @@
 # NEVER commit terraform.tfvars (it contains secrets).
 
 # --- Auth0 "HCP Vault OIDC" application (regular web app) ---
-auth0_domain        = "dev-k5xncag6gzsmst88.eu.auth0.com"
+auth0_domain        = "dev-xxxx.eu.auth0.com"
 auth0_client_id     = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 auth0_client_secret = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 
-# --- Allowed public IP (NSG allow-list). Set your current public IP. ---
-admin_source_ip = "196.75.81.68"
+# --- Required: the public IP allowed to reach SSH, Vault, and Splunk ---
+# Set this to YOUR current public IP (there is no default).
+admin_source_ip = "203.0.113.10"
 
-# --- SPA app URL (Auth0 callbacks/origins) ---
+# --- SPA app URL (Auth0 callbacks/origins). deploy-app.sh updates this to the
+#     Kong public IP after the cluster workloads are deployed. ---
 app_url = "http://localhost:8080"
+
+# --- Optional: your own Google OAuth keys to enable Google social login.
+#     Leave empty to use username/password + MFA only (no shared dev keys). ---
+google_client_id     = ""
+google_client_secret = ""

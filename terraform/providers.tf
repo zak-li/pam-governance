@@ -1,5 +1,6 @@
 provider "azurerm" {
-  skip_provider_registration = true
+  # Resource providers (Microsoft.KeyVault, Microsoft.ManagedIdentity,
+  # Microsoft.ContainerService) are auto-registered on first use.
   features {}
 }
 

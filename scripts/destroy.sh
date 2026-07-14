@@ -43,5 +43,5 @@ terraform destroy -auto-approve
 
 log ""
 log "Infrastructure fully destroyed."
-log "The Auth0 Google social connection and the admin@pam-governance.local account"
-log "were created outside Terraform, so remove them manually if you no longer need them."
+log "Any seed admin user, or a Google connection created outside Terraform with"
+log "shared dev keys, is not managed here; remove it manually if you no longer need it."

@@ -18,7 +18,7 @@
 
 > **PAM Governance** (codename `Sentinel`): a cloud-native Privileged Access Management and identity governance platform. It centralizes secrets, enforces least-privilege access, and secures authentication across enterprise infrastructure under a Zero-Trust model.
 
-PAM Governance eliminates credential sprawl through dynamic secret generation, role-based access control, and OpenID Connect single sign-on. It runs a Zero-Trust security model with end-to-end TLS, service-to-service mutual TLS through `Istio`, hardened network boundaries, and forensic audit logging that flows into a SIEM for continuous monitoring. The whole platform is provisioned as Infrastructure-as-Code, so a single environment can be built, stopped, restarted, or torn down with one command.
+PAM Governance eliminates credential sprawl through dynamic secret generation, role-based access control, and OpenID Connect single sign-on. It runs a Zero-Trust security model with end-to-end TLS, service-to-service mutual TLS through `Istio`, hardened network boundaries, and forensic audit logging that flows into a SIEM for continuous monitoring. The base infrastructure is provisioned as Infrastructure-as-Code with Terraform, and the cluster workloads, meaning the mesh, the gateway, and the app, are deployed by an idempotent installer, so an environment can be built, stopped, restarted, or destroyed with a single command each.
 
 ## Table of Contents
 
@@ -102,7 +102,7 @@ make start      # bring the same environment back up
 make destroy    # delete all infrastructure, irreversible
 ```
 
-After a restart, Vault comes back sealed because it uses file storage with no auto-unseal. Unseal it with three of the five keys escrowed in Azure Key Vault.
+After a restart, Vault comes back sealed because it uses file storage with no auto-unseal. Run `make unseal`, which reads the escrowed keys from Azure Key Vault and unseals Vault on the VM for you.
 
 ## Security
 
@@ -116,15 +116,21 @@ The app is hardened for a hostile browser. It forces HTTPS, sets HSTS, ships a s
 
 ```
 terraform/            Infrastructure-as-Code for Azure and Auth0
-  main.tf             VM, network, Key Vault, identities, TLS
+  main.tf             resource group and generated crypto material
+  network.tf          VNet, subnet, public IP, NSG, NIC
+  keyvault.tf         managed identity, Key Vault, escrowed secrets
+  compute.tf          the Vault/Splunk virtual machine
   aks.tf              AKS cluster
-  auth0.tf            OIDC, MFA, RBAC, session policy
+  auth0.tf            OIDC, MFA, RBAC, session policy, connections
+  outputs.tf          outputs
   install.sh.tpl      cloud-init: Vault, Splunk, audit pipeline
   pam_governance.xml  pre-installed Splunk forensic dashboard
-app/             single-page app, SSO login to a success dashboard
+  backend.tf.example  optional remote encrypted state backend
+app/                  single-page app, SSO login to a success dashboard
 k8s/                  namespace, mTLS policy, hardened deployment, Kong ingress
-scripts/              deploy, stop, start, and destroy the environment
-docs/                 architecture and security documentation
+scripts/              deploy, stop, start, unseal, destroy, backend bootstrap
+docs/                 architecture documentation
+AUDIT.md              audit findings and remediation plan
 ```
 
 ## License

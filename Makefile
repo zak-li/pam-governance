@@ -5,7 +5,7 @@ SHELL := bash
 TF_DIR := terraform
 
 .DEFAULT_GOAL := help
-.PHONY: help deploy deploy-infra deploy-app stop start destroy fmt validate lint
+.PHONY: help deploy deploy-infra deploy-app stop start unseal destroy fmt validate lint
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -24,6 +24,9 @@ stop: ## Stop all compute (zero cost), reversible
 
 start: ## Restart the stopped infrastructure
 	./scripts/start.sh
+
+unseal: ## Unseal Vault after a restart (keys from Key Vault)
+	./scripts/unseal.sh
 
 destroy: ## Delete all infrastructure (irreversible)
 	./scripts/destroy.sh

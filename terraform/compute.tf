@@ -23,17 +23,17 @@ resource "azurerm_linux_virtual_machine" "vm" {
     identity_ids = [azurerm_user_assigned_identity.vm_id.id]
   }
 
+  # custom_data carries only non-secret configuration. The Auth0 client secret,
+  # the Vault TLS private key and the Splunk password are pulled from Key Vault
+  # at boot through the managed identity (see install.sh.tpl).
   custom_data = base64encode(templatefile("${path.module}/install.sh.tpl", {
-    admin_password      = random_password.vm_password.result
-    vault_cert          = tls_self_signed_cert.vault_cert.cert_pem
-    vault_key           = tls_private_key.vault_key.private_key_pem
-    auth0_domain        = var.auth0_domain
-    auth0_client_id     = var.auth0_client_id
-    auth0_client_secret = var.auth0_client_secret
-    public_ip           = azurerm_public_ip.pip.ip_address
-    key_vault_name      = local.key_vault_name
-    identity_client_id  = azurerm_user_assigned_identity.vm_id.client_id
-    splunk_dashboard    = file("${path.module}/pam_governance.xml")
+    vault_cert         = tls_self_signed_cert.vault_cert.cert_pem
+    auth0_domain       = var.auth0_domain
+    auth0_client_id    = var.auth0_client_id
+    public_ip          = azurerm_public_ip.pip.ip_address
+    key_vault_name     = local.key_vault_name
+    identity_client_id = azurerm_user_assigned_identity.vm_id.client_id
+    splunk_dashboard   = base64encode(file("${path.module}/pam_governance.xml"))
   }))
 
   os_disk {
@@ -50,9 +50,13 @@ resource "azurerm_linux_virtual_machine" "vm" {
 
   boot_diagnostics {} # managed storage account
 
-  # Ensure the VM identity can already reach Key Vault when cloud-init runs
+  # Ensure the VM identity can already reach Key Vault, and that the escrowed
+  # secrets exist, before cloud-init runs.
   depends_on = [
     azurerm_key_vault_access_policy.vm,
+    azurerm_key_vault_secret.splunk_password,
+    azurerm_key_vault_secret.auth0_client_secret,
+    azurerm_key_vault_secret.vault_tls_key,
     azurerm_network_interface_security_group_association.nsg_assoc,
   ]
 }

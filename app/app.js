@@ -2,9 +2,11 @@
 // The user signs in through Auth0 and lands on the /dashboard success page.
 // The UI exposes no direct access to Vault or Splunk, which are back-office
 // infrastructure components.
+// Config comes from config.js (window.APP_CONFIG), which deploy-app.sh
+// regenerates from Terraform outputs so the app is portable across tenants.
 const AUTH0_CONFIG = {
-  domain: "dev-k5xncag6gzsmst88.eu.auth0.com",
-  clientId: "WSLWksd8eYgpXPshHPEdMlaT84NKrGSL",
+  domain: window.APP_CONFIG.auth0Domain,
+  clientId: window.APP_CONFIG.auth0ClientId,
 };
 
 const DASHBOARD_PATH = "/dashboard";

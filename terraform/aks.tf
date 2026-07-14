@@ -32,8 +32,8 @@ resource "azurerm_kubernetes_cluster" "aks" {
 
   role_based_access_control_enabled = true
 
-  # Hardening: automatic cert rotation, patch upgrade channel
-  automatic_channel_upgrade = "patch"
+  # No automatic node upgrades (attribute omitted): avoid surprise disruptions.
+  # Upgrade explicitly or configure a maintenance window in a real deployment.
 
   lifecycle {
     ignore_changes = [

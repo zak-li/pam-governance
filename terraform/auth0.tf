@@ -31,14 +31,39 @@ resource "auth0_guardian" "mfa" {
 }
 
 # --- Username/password database connection enabled for the apps ---
-# The Google social connection (dev keys) was removed, so login uses the
-# username/password database connection with MFA only.
+# Look the default database connection up by name so the config is portable
+# across tenants (its id differs per tenant).
+data "auth0_connection" "db" {
+  name = "Username-Password-Authentication"
+}
+
 resource "auth0_connection_clients" "db_clients" {
-  connection_id = "con_XkyAVXuIjcqHLJJV" # Username-Password-Authentication
+  connection_id = data.auth0_connection.db.id
   enabled_clients = [
     auth0_client.app_spa.client_id,
     auth0_client.vault_client.client_id,
   ]
+}
+
+# --- Optional Google social connection, with the operator's own OAuth keys ---
+# Enabled only when google_client_id is set. This avoids Auth0 shared
+# development keys (which raise a "dev keys" warning). Leave the variables empty
+# to keep login as username/password + MFA only.
+resource "auth0_connection" "google" {
+  count    = var.google_client_id != "" ? 1 : 0
+  name     = "google-oauth2"
+  strategy = "google-oauth2"
+
+  options {
+    client_id     = var.google_client_id
+    client_secret = var.google_client_secret
+  }
+}
+
+resource "auth0_connection_clients" "google_clients" {
+  count           = var.google_client_id != "" ? 1 : 0
+  connection_id   = auth0_connection.google[0].id
+  enabled_clients = [auth0_client.app_spa.client_id]
 }
 
 # --- RBAC role assumed by privileged administrators ---
