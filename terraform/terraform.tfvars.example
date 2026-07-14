@@ -9,5 +9,5 @@ auth0_client_secret = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 # --- Allowed public IP (NSG allow-list). Set your current public IP. ---
 admin_source_ip = "196.75.81.68"
 
-# --- SPA frontend URL (Auth0 callbacks/origins) ---
-frontend_url = "http://localhost:8080"
+# --- SPA app URL (Auth0 callbacks/origins) ---
+app_url = "http://localhost:8080"

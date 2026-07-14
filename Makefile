@@ -5,19 +5,19 @@ SHELL := bash
 TF_DIR := terraform
 
 .DEFAULT_GOAL := help
-.PHONY: help deploy deploy-infra deploy-frontend stop start destroy fmt validate lint
+.PHONY: help deploy deploy-infra deploy-app stop start destroy fmt validate lint
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
 		| awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-16s\033[0m %s\n", $$1, $$2}'
 
-deploy: deploy-infra deploy-frontend ## Provision everything (infra then cluster workloads)
+deploy: deploy-infra deploy-app ## Provision everything (infra then cluster workloads)
 
 deploy-infra: ## Provision the base infrastructure with Terraform
 	./scripts/deploy-infra.sh
 
-deploy-frontend: ## Install Istio, Kong and the frontend on AKS
-	./scripts/deploy-frontend.sh
+deploy-app: ## Install Istio, Kong and the app on AKS
+	./scripts/deploy-app.sh
 
 stop: ## Stop all compute (zero cost), reversible
 	./scripts/stop.sh

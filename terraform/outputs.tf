@@ -32,9 +32,9 @@ output "aks_node_rg" {
   value       = azurerm_kubernetes_cluster.aks.node_resource_group
 }
 
-output "auth0_frontend_client_id" {
-  description = "Client ID of the IaC-managed SPA frontend application"
-  value       = auth0_client.frontend_spa.client_id
+output "auth0_app_client_id" {
+  description = "Client ID of the IaC-managed SPA app application"
+  value       = auth0_client.app_spa.client_id
 }
 
 output "auth0_vault_client_id" {

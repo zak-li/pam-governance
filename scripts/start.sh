@@ -4,7 +4,7 @@
 #
 # Restarts the infrastructure that stop.sh suspended. Note that Vault comes
 # back sealed, because it uses file storage with no auto-unseal, so it must be
-# unlocked with the unseal keys escrowed in Key Vault (see docs/SECURITY.md).
+# unlocked with the unseal keys escrowed in Key Vault (see the README).
 #
 set -euo pipefail
 
@@ -43,4 +43,4 @@ ip="$(az network public-ip show -g "$RG" -n pip-splunk --query ipAddress -o tsv 
 log "Infrastructure restarted."
 log "Vault:  https://${ip}:8200 (unlock with three unseal keys from Key Vault)"
 log "Splunk: http://${ip}:8000"
-log "Frontend: read the Kong IP with 'kubectl -n kong get svc kong-kong-proxy'."
+log "App: read the Kong IP with 'kubectl -n kong get svc kong-kong-proxy'."

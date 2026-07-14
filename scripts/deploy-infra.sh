@@ -38,4 +38,4 @@ log ""
 log "Infrastructure provisioned. Outputs:"
 terraform output vault_ui_url splunk_ui_url key_vault_name aks_name 2>/dev/null || true
 log ""
-log "Next, run scripts/deploy-frontend.sh to install Istio, Kong, and the frontend."
+log "Next, run scripts/deploy-app.sh to install Istio, Kong, and the app."

@@ -5,7 +5,7 @@
 Identity is provided by an Auth0 tenant, which handles OpenID Connect and OAuth2,
 enforces multi-factor authentication, holds the RBAC roles, and runs a post-login
 Action that attaches role claims to the token. The user-facing surface is a
-single-page frontend deployed on AKS in the `pam-governance` namespace, which
+single-page app deployed on AKS in the `pam-governance` namespace, which
 handles the SSO login and then shows a success dashboard. Traffic enters through
 the Kong gateway in the `kong` namespace, a public load balancer that terminates
 requests, redirects to HTTPS, and applies rate limiting. Istio runs in
@@ -20,7 +20,7 @@ with the host logs, presenting them on a forensic dashboard. Azure Key Vault
 holds the escrowed Vault unseal keys and root token, and a managed identity lets
 the virtual machine write to Key Vault without any stored credential.
 
-## Request flow for the frontend
+## Request flow for the app
 
 A user opens the Kong public IP over HTTP and Kong redirects them to HTTPS. The
 single-page app starts the OIDC PKCE flow, which sends the user to Auth0 for
@@ -51,14 +51,14 @@ escrows the unseal keys and the root token to Azure Key Vault through the manage
 identity and shreds the local copy. Finally it installs Splunk in Docker and
 creates the `pam_audit` index, the log monitors, and the forensic dashboard.
 
-## Mutual TLS between Kong and the frontend
+## Mutual TLS between Kong and the app
 
-Kong is part of the mesh through its Istio sidecar and routes to the frontend
+Kong is part of the mesh through its Istio sidecar and routes to the app
 Service cluster IP, which is enabled by the `service-upstream` annotation, so
 Istio automatic mutual TLS applies to that hop. The namespace peer
 authentication is set to permissive rather than strict, because the Kong
 OpenResty upstream does not always originate mutual TLS and strict mode breaks
-the Kong to frontend hop with a 503. For strict end-to-end mutual TLS, traffic
+the Kong to app hop with a 503. For strict end-to-end mutual TLS, traffic
 would be terminated at an Istio ingress gateway instead of Kong.
 
 ## Deployment order
@@ -66,14 +66,14 @@ would be terminated at an Istio ingress gateway instead of Kong.
 The base infrastructure is provisioned first with `scripts/deploy-infra.sh`,
 which runs Terraform to create the virtual machine, the AKS cluster, the Key
 Vault, and the Auth0 configuration. The cluster workloads are deployed next with
-`scripts/deploy-frontend.sh`, which installs Istio through Helm, then Kong, then
-the frontend.
+`scripts/deploy-app.sh`, which installs Istio through Helm, then Kong, then
+the app.
 
 ## Operational notes
 
 Vault re-seals whenever the virtual machine reboots, because it uses file storage
 with no auto-unseal, so it must be unlocked with three unseal keys from Key
-Vault. The public IP is static, so it survives a VM recreation and the frontend
+Vault. The public IP is static, so it survives a VM recreation and the app
 links and Auth0 callbacks stay valid. Recreating the virtual machine
 re-initializes Vault with new keys escrowed to Key Vault, which is done with
 `terraform apply -replace=azurerm_linux_virtual_machine.vm`.

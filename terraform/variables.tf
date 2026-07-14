@@ -39,9 +39,9 @@ variable "auth0_client_secret" {
   sensitive   = true
 }
 
-# --- Public SPA frontend, managed as IaC ---
-variable "frontend_url" {
-  description = "Public URL of the SPA frontend (Auth0 callback/logout/origins)"
+# --- Public SPA app, managed as IaC ---
+variable "app_url" {
+  description = "Public URL of the SPA app (Auth0 callback/logout/origins)"
   type        = string
   default     = "http://localhost:8080"
 }

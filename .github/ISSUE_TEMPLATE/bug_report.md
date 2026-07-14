@@ -21,7 +21,7 @@ What you expected to happen.
 
 ## Environment
 
-- Component (Terraform, Vault, Kong, Istio, frontend, Splunk):
+- Component (Terraform, Vault, Kong, Istio, app, Splunk):
 - Terraform version:
 - Azure region:
 

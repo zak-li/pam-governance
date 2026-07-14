@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 #
-# deploy-frontend.sh
+# deploy-app.sh
 #
-# Deploys Istio, then Kong, then the hardened frontend onto the AKS cluster.
+# Deploys Istio, then Kong, then the hardened app onto the AKS cluster.
 # It drives the cluster through "az aks command invoke", so no local kubectl or
 # helm is required. The script is idempotent and safe to re-run.
 #
@@ -30,23 +30,23 @@ invoke --command "kubectl create ns kong --dry-run=client -o yaml | kubectl appl
   helm status kong -n kong >/dev/null 2>&1 || helm install kong kong --repo $KONG_REPO -n kong --set ingressController.installCRDs=false --wait --timeout 6m" >/dev/null
 log "Kong ready."
 
-log "Deploying the frontend manifest and assets."
+log "Deploying the app manifest and assets."
 invoke \
-  --file "$ROOT/k8s/frontend.yaml" \
-  --file "$ROOT/frontend/index.html" \
-  --file "$ROOT/frontend/style.css" \
-  --file "$ROOT/frontend/app.js" \
-  --command "kubectl apply -f frontend.yaml ; \
-    kubectl -n pam-governance create configmap frontend-files \
+  --file "$ROOT/k8s/app.yaml" \
+  --file "$ROOT/app/index.html" \
+  --file "$ROOT/app/style.css" \
+  --file "$ROOT/app/app.js" \
+  --command "kubectl apply -f app.yaml ; \
+    kubectl -n pam-governance create configmap app-files \
       --from-file=index.html --from-file=style.css --from-file=app.js \
       --dry-run=client -o yaml | kubectl apply -f - ; \
-    kubectl -n pam-governance rollout restart deploy/frontend ; \
-    kubectl -n pam-governance rollout status deploy/frontend --timeout=150s" >/dev/null
-log "Frontend deployed."
+    kubectl -n pam-governance rollout restart deploy/app ; \
+    kubectl -n pam-governance rollout status deploy/app --timeout=150s" >/dev/null
+log "App deployed."
 
 log "Fetching the Kong public IP."
 ip="$(invoke --command "kubectl -n kong get svc kong-kong-proxy -o jsonpath='{.status.loadBalancer.ingress[0].ip}'" | tr -d '[:space:]')"
 log ""
-log "Frontend online at http://${ip} (it redirects to https)."
-log "Update frontend_url to \"http://${ip}\" in terraform.tfvars, then run"
-log "terraform apply -target=auth0_client.frontend_spa to sync the Auth0 callbacks."
+log "App online at http://${ip} (it redirects to https)."
+log "Update app_url to \"http://${ip}\" in terraform.tfvars, then run"
+log "terraform apply -target=auth0_client.app_spa to sync the Auth0 callbacks."

@@ -3,10 +3,10 @@
 # =====================================================================
 
 locals {
-  # Allow both http and https of the frontend host (Kong listens on 80 and 443).
-  frontend_urls = distinct([
-    var.frontend_url,
-    replace(var.frontend_url, "http://", "https://"),
+  # Allow both http and https of the app host (Kong listens on 80 and 443).
+  app_urls = distinct([
+    var.app_url,
+    replace(var.app_url, "http://", "https://"),
   ])
 }
 
@@ -36,7 +36,7 @@ resource "auth0_guardian" "mfa" {
 resource "auth0_connection_clients" "db_clients" {
   connection_id = "con_XkyAVXuIjcqHLJJV" # Username-Password-Authentication
   enabled_clients = [
-    auth0_client.frontend_spa.client_id,
+    auth0_client.app_spa.client_id,
     auth0_client.vault_client.client_id,
   ]
 }
@@ -80,9 +80,9 @@ resource "auth0_client" "vault_client" {
   ]
 }
 
-# --- Public single-page app (frontend), managed as IaC ---
-resource "auth0_client" "frontend_spa" {
-  name        = "PAM Governance Frontend"
+# --- Public single-page app (app), managed as IaC ---
+resource "auth0_client" "app_spa" {
+  name        = "PAM Governance App"
   description = "Public SPA, OIDC single sign-on with PKCE"
   app_type    = "spa"
 
@@ -99,10 +99,10 @@ resource "auth0_client" "frontend_spa" {
 
   # Allow both http and https of the host (Kong exposes 80 and 443). The SPA
   # redirect_uri is window.location.origin, which depends on the visitor scheme.
-  callbacks           = local.frontend_urls
-  allowed_logout_urls = local.frontend_urls
-  allowed_origins     = local.frontend_urls
-  web_origins         = local.frontend_urls
+  callbacks           = local.app_urls
+  allowed_logout_urls = local.app_urls
+  allowed_origins     = local.app_urls
+  web_origins         = local.app_urls
 
   refresh_token {
     rotation_type   = "rotating"

@@ -1,4 +1,4 @@
-// PAM Governance frontend, single sign-on with auth0-spa-js v2.
+// PAM Governance app, single sign-on with auth0-spa-js v2.
 // The user signs in through Auth0 and lands on the /dashboard success page.
 // The UI exposes no direct access to Vault or Splunk, which are back-office
 // infrastructure components.

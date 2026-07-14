@@ -1,5 +1,5 @@
 # =====================================================================
-#  Azure Kubernetes Service - hosts the frontend behind Kong (edge) with
+#  Azure Kubernetes Service - hosts the app behind Kong (edge) with
 #  the Istio service mesh (east-west mTLS). Single node (student quota).
 # =====================================================================
 resource "azurerm_kubernetes_cluster" "aks" {

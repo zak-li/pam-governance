@@ -34,13 +34,13 @@ PAM Governance eliminates credential sprawl through dynamic secret generation, r
 
 Privileged credential management is delegated to `HashiCorp Vault`, which issues short-lived secrets on demand rather than distributing static keys. Vault runs a signing certificate authority for privileged SSH access, a database engine for dynamic database credentials, a transit engine for encryption as a service, and a versioned key-value store, so no long-lived credential ever needs to sit in a config file. Access to Vault is granted only after an operator authenticates through `Auth0` with multi-factor authentication, and every request is written to a forensic audit trail.
 
-Workloads are orchestrated on `Azure Kubernetes Service` and wrapped in the `Istio` service mesh, which gives every pod a sidecar and encrypts east-west traffic with mutual TLS. The public entry point is the `Kong` API gateway, exposed through an Azure load balancer, which terminates traffic, redirects everything to HTTPS, and applies rate limiting at the edge. A single-page frontend sits behind Kong and lets a user sign in through `Auth0` before landing on a success dashboard, with no direct path to the back-office tooling.
+Workloads are orchestrated on `Azure Kubernetes Service` and wrapped in the `Istio` service mesh, which gives every pod a sidecar and encrypts east-west traffic with mutual TLS. The public entry point is the `Kong` API gateway, exposed through an Azure load balancer, which terminates traffic, redirects everything to HTTPS, and applies rate limiting at the edge. A single-page app sits behind Kong and lets a user sign in through `Auth0` before landing on a success dashboard, with no direct path to the back-office tooling.
 
 Continuous security monitoring is handled by `Splunk`, which ingests the Vault audit device together with host authentication and system logs into a dedicated index and renders them on a forensic dashboard. Vault unseal keys and the root token are never left on disk; they are escrowed into `Azure Key Vault` through a managed identity, which keeps break-glass material off the machine while still recoverable by an authorized operator.
 
 ## Architecture
 
-A user reaches the frontend over HTTPS. Kong terminates the request at the edge, and the Istio mesh carries it to the frontend pod over mutual TLS. Authentication is federated to Auth0, which enforces MFA and returns an OIDC identity. The privileged tooling, Vault and Splunk, runs on a separate hardened virtual machine that is only reachable from an allow-listed administrator address.
+A user reaches the app over HTTPS. Kong terminates the request at the edge, and the Istio mesh carries it to the app pod over mutual TLS. Authentication is federated to Auth0, which enforces MFA and returns an OIDC identity. The privileged tooling, Vault and Splunk, runs on a separate hardened virtual machine that is only reachable from an allow-listed administrator address.
 
 ```
                        Auth0  (OIDC / OAuth2, MFA, RBAC roles)
@@ -48,7 +48,7 @@ A user reaches the frontend over HTTPS. Kong terminates the request at the edge,
      User  --HTTPS-->  Kong Gateway (public load balancer, rate limit)
                          |
                          v   Istio service mesh (sidecars, auto mTLS)
-                       Frontend SPA (non-root nginx, strict CSP)
+                       App SPA (non-root nginx, strict CSP)
 
      Azure VM (admin-only, default-deny NSG)
        HashiCorp Vault (TLS 8200)          Splunk SIEM (8000)
@@ -57,7 +57,7 @@ A user reaches the frontend over HTTPS. Kong terminates the request at the edge,
          unseal/root token  ->  Azure Key Vault (off-disk escrow)
 ```
 
-The full component breakdown, request flows, and bootstrap sequence live in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md). The complete security model is documented in [`docs/SECURITY.md`](docs/SECURITY.md).
+The full component breakdown, request flows, and bootstrap sequence live in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
 ## Quick Start
 
@@ -83,11 +83,11 @@ cp terraform/terraform.tfvars.example terraform/terraform.tfvars
 # edit terraform/terraform.tfvars: Vault OIDC app credentials and your admin IP
 ```
 
-Provision the base infrastructure, then deploy the mesh, the gateway, and the frontend onto the cluster.
+Provision the base infrastructure, then deploy the mesh, the gateway, and the app onto the cluster.
 
 ```bash
 make deploy-infra      # VM (Vault + Splunk), AKS, Key Vault, Auth0
-make deploy-frontend   # Istio, then Kong, then the hardened frontend
+make deploy-app   # Istio, then Kong, then the hardened app
 ```
 
 Both steps are idempotent, so they can be re-run safely if something needs to be reconciled.
@@ -102,15 +102,15 @@ make start      # bring the same environment back up
 make destroy    # delete all infrastructure, irreversible
 ```
 
-After a restart, Vault comes back sealed because it uses file storage with no auto-unseal. Unseal it with three of the five keys escrowed in Azure Key Vault, as described in [`docs/SECURITY.md`](docs/SECURITY.md).
+After a restart, Vault comes back sealed because it uses file storage with no auto-unseal. Unseal it with three of the five keys escrowed in Azure Key Vault.
 
 ## Security
 
 Authorization in Vault is scoped rather than global. The administrator policy grants access to the specific secret engines it needs and never receives a blanket `path "*"` grant or `sudo`, and the default OIDC role is the read-only operator. Escalation to administrator requires a group claim that Auth0 attaches only to members of the `PAM_Administrator` role, so a successful login is not by itself a grant of privilege.
 
-The network is closed by default. The security group denies all inbound traffic except from an allow-listed administrator address, the virtual machine accepts key-based SSH only, and Kubernetes network policy restricts ingress to the gateway and the mesh control plane. Inside the cluster, Istio encrypts pod-to-pod traffic with mutual TLS, and the frontend container runs as a non-root user on a read-only root filesystem with all Linux capabilities dropped.
+The network is closed by default. The security group denies all inbound traffic except from an allow-listed administrator address, the virtual machine accepts key-based SSH only, and Kubernetes network policy restricts ingress to the gateway and the mesh control plane. Inside the cluster, Istio encrypts pod-to-pod traffic with mutual TLS, and the app container runs as a non-root user on a read-only root filesystem with all Linux capabilities dropped.
 
-The frontend is hardened for a hostile browser. It forces HTTPS, sets HSTS, ships a strict Content Security Policy with subresource integrity on its one external script, keeps tokens in memory instead of local storage, and refuses to restore an authenticated view through the browser back button. Auth0 enforces MFA on every login and expires sessions after eight hours, or after thirty minutes of inactivity.
+The app is hardened for a hostile browser. It forces HTTPS, sets HSTS, ships a strict Content Security Policy with subresource integrity on its one external script, keeps tokens in memory instead of local storage, and refuses to restore an authenticated view through the browser back button. Auth0 enforces MFA on every login and expires sessions after eight hours, or after thirty minutes of inactivity.
 
 ## Repository Layout
 
@@ -121,7 +121,7 @@ terraform/            Infrastructure-as-Code for Azure and Auth0
   auth0.tf            OIDC, MFA, RBAC, session policy
   install.sh.tpl      cloud-init: Vault, Splunk, audit pipeline
   pam_governance.xml  pre-installed Splunk forensic dashboard
-frontend/             single-page app, SSO login to a success dashboard
+app/             single-page app, SSO login to a success dashboard
 k8s/                  namespace, mTLS policy, hardened deployment, Kong ingress
 scripts/              deploy, stop, start, and destroy the environment
 docs/                 architecture and security documentation
