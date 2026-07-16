@@ -32,6 +32,16 @@ output "aks_node_rg" {
   value       = azurerm_kubernetes_cluster.aks.node_resource_group
 }
 
+output "acr_login_server" {
+  description = "Login server of the container registry (for az acr build)"
+  value       = azurerm_container_registry.acr.login_server
+}
+
+output "acr_name" {
+  description = "Container registry name"
+  value       = azurerm_container_registry.acr.name
+}
+
 output "auth0_app_client_id" {
   description = "Client ID of the IaC-managed SPA application"
   value       = auth0_client.app_spa.client_id

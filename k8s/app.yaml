@@ -1,9 +1,12 @@
 # =====================================================================
 #  PAM Governance - App workload (Zero-Trust hardened)
 #  Kong Gateway (north-south, edge LoadBalancer) + Istio mesh (mTLS)
-#  The namespace does not use the 'restricted' PSA, because the Istio
-#  init container (istio-init) needs NET_ADMIN/NET_RAW to program iptables.
-#  Hardening is applied to the application container via its securityContext.
+#  The app is an Angular SPA served by a non-root nginx image built into the
+#  Azure Container Registry. The nginx config and security headers are baked
+#  into the image; only the runtime Auth0 config (assets/config.json) is mounted
+#  from a ConfigMap so the app is portable across tenants.
+#  The namespace does not use the 'restricted' PSA, because the Istio init
+#  container needs NET_ADMIN/NET_RAW; hardening is on the app container instead.
 # =====================================================================
 apiVersion: v1
 kind: Namespace
@@ -15,10 +18,10 @@ metadata:
 # --- Mesh policy: mTLS between meshed services ---
 # PERMISSIVE rather than STRICT: Kong (OpenResty) opens its upstream connections
 # in a way its sidecar does not always upgrade to mTLS, so STRICT breaks the
-# Kong->app hop with a 503. In PERMISSIVE mode Istio auto-mTLS still
-# encrypts all traffic between pods that carry a sidecar; only the Kong edge can
-# fall back to plaintext inside the cluster. For strict end-to-end mTLS,
-# terminate at an Istio IngressGateway instead of Kong.
+# Kong->app hop with a 503. In PERMISSIVE mode Istio auto-mTLS still encrypts
+# all traffic between pods that carry a sidecar; only the Kong edge can fall back
+# to plaintext inside the cluster. For strict end-to-end mTLS, terminate at an
+# Istio IngressGateway instead of Kong.
 apiVersion: security.istio.io/v1
 kind: PeerAuthentication
 metadata:
@@ -39,44 +42,6 @@ spec:
   trafficPolicy:
     tls:
       mode: ISTIO_MUTUAL
----
-# --- Hardened nginx config: non-root (8080), security headers, strict CSP ---
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: nginx-conf
-  namespace: pam-governance
-data:
-  default.conf: |
-    server {
-        listen 8080;
-        server_name _;
-        root /usr/share/nginx/html;
-        index index.html;
-        server_tokens off;
-        autoindex off;
-
-        # --- Security headers (high level) ---
-        add_header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload" always;
-        add_header X-Frame-Options "DENY" always;
-        add_header X-Content-Type-Options "nosniff" always;
-        add_header Referrer-Policy "no-referrer" always;
-        add_header Permissions-Policy "geolocation=(), microphone=(), camera=(), payment=(), usb=(), interest-cohort=()" always;
-        add_header Cross-Origin-Opener-Policy "same-origin" always;
-        add_header Cross-Origin-Resource-Policy "same-origin" always;
-        add_header X-Permitted-Cross-Domain-Policies "none" always;
-        # No caching, which prevents the bfcache from restoring an authenticated view
-        add_header Cache-Control "no-store, no-cache, must-revalidate, max-age=0" always;
-        add_header Pragma "no-cache" always;
-        add_header Content-Security-Policy "default-src 'self'; script-src 'self' https://cdn.auth0.com; worker-src 'self' blob:; child-src 'self' blob:; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src https://fonts.gstatic.com; img-src 'self' https: data:; connect-src 'self' https://dev-k5xncag6gzsmst88.eu.auth0.com; frame-src https://dev-k5xncag6gzsmst88.eu.auth0.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'; upgrade-insecure-requests" always;
-
-        # Deny access to hidden files
-        location ~ /\. { deny all; }
-
-        location / {
-            try_files $uri $uri/ /index.html;
-        }
-    }
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -105,7 +70,8 @@ spec:
           type: RuntimeDefault
       containers:
         - name: nginx
-          image: nginxinc/nginx-unprivileged:1.27-alpine
+          image: __APP_IMAGE__ # replaced by scripts/deploy-app.sh with the ACR image
+          imagePullPolicy: Always
           ports:
             - containerPort: 8080
           securityContext:
@@ -115,7 +81,7 @@ spec:
               drop: ["ALL"]
           resources:
             requests: { cpu: "25m", memory: "48Mi" }
-            limits:   { cpu: "200m", memory: "128Mi" }
+            limits:   { cpu: "250m", memory: "160Mi" }
           livenessProbe:
             httpGet: { path: /, port: 8080 }
             initialDelaySeconds: 5
@@ -125,16 +91,13 @@ spec:
             initialDelaySeconds: 3
             periodSeconds: 10
           volumeMounts:
-            - { name: app-volume, mountPath: /usr/share/nginx/html, readOnly: true }
-            - { name: nginx-conf, mountPath: /etc/nginx/conf.d, readOnly: true }
+            - { name: app-config, mountPath: /usr/share/nginx/html/assets, readOnly: true }
             - { name: tmp, mountPath: /tmp }
             - { name: cache, mountPath: /var/cache/nginx }
             - { name: run, mountPath: /var/run }
       volumes:
-        - name: app-volume
-          configMap: { name: app-files }
-        - name: nginx-conf
-          configMap: { name: nginx-conf }
+        - name: app-config
+          configMap: { name: app-config }
         - name: tmp
           emptyDir: {}
         - name: cache

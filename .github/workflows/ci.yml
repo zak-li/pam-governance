@@ -65,6 +65,22 @@ jobs:
       - name: Validate (ignore CRDs from Istio and Kong)
         run: kubeconform -strict -ignore-missing-schemas -summary k8s/app.yaml
 
+  angular:
+    name: Angular build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Production build
+        run: npm run build
+
   shellcheck:
     name: Shellcheck
     runs-on: ubuntu-latest

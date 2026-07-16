@@ -4,9 +4,12 @@
 
 Identity is provided by an Auth0 tenant, which handles OpenID Connect and OAuth2,
 enforces multi-factor authentication, holds the RBAC roles, and runs a post-login
-Action that attaches role claims to the token. The user-facing surface is a
-single-page app deployed on AKS in the `pam-governance` namespace, which
-handles the SSO login and then shows a success dashboard. Traffic enters through
+Action that attaches role claims to the token. The user-facing surface is an
+Angular single-page app, built into Azure Container Registry and served by a
+non-root nginx, deployed on AKS in the `pam-governance` namespace, which handles
+the SSO login and then shows a success dashboard. Its Auth0 configuration is
+loaded at runtime from a mounted `config.json`, so the same image works across
+tenants. Traffic enters through
 the Kong gateway in the `kong` namespace, a public load balancer that terminates
 requests, redirects to HTTPS, and applies rate limiting. Istio runs in
 `istio-system` and gives every pod a sidecar so that east-west traffic is

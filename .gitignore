@@ -46,5 +46,11 @@ desktop.ini
 tmp/
 .tmp/
 
+# Angular / Node build artifacts
+node_modules/
+app/dist/
+app/.angular/
+npm-debug.log*
+
 # Local audit notes, not versioned
 AUDIT.md

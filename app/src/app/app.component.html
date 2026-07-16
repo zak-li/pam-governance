@@ -1,0 +1,41 @@
+<div class="background-blobs">
+  <div class="blob blob-1"></div>
+  <div class="blob blob-2"></div>
+</div>
+
+<div class="glass-container">
+  <ng-container *ngIf="(isAuthenticated$ | async) === false">
+    <div class="view active">
+      <h1>PAM Governance</h1>
+      <p class="subtitle">Zero-Trust Identity Management</p>
+      <p class="description">
+        Centralized OIDC single sign-on with multi-factor authentication.
+        Sign in to reach your secure dashboard.
+      </p>
+      <button class="btn-primary" (click)="login()">Secure Login</button>
+    </div>
+  </ng-container>
+
+  <ng-container *ngIf="isAuthenticated$ | async">
+    <div class="view active" *ngIf="user$ | async as user">
+      <h1>Access Granted</h1>
+      <p class="subtitle">PAM Governance Dashboard</p>
+
+      <div class="user-profile">
+        <img *ngIf="user.picture" id="user-avatar" [src]="user.picture" alt="User avatar">
+        <div>
+          <h2>{{ user.name }}</h2>
+          <p>{{ user.email }}</p>
+        </div>
+      </div>
+
+      <div class="status-card">
+        <div class="status-row"><span class="dot ok"></span> Secure session over OIDC single sign-on with MFA</div>
+        <div class="status-row"><span class="dot ok"></span> Access compliant with the Zero-Trust policy</div>
+        <div class="status-row"><span class="dot ok"></span> Activity recorded in the forensic audit trail</div>
+      </div>
+
+      <button class="btn-ghost" (click)="logout()">Log out</button>
+    </div>
+  </ng-container>
+</div>
