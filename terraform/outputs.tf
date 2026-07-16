@@ -4,47 +4,47 @@
 
 output "splunk_public_ip" {
   description = "Public IP of the Vault/Splunk virtual machine"
-  value       = azurerm_linux_virtual_machine.vm.public_ip_address
+  value       = module.compute.public_ip_address
 }
 
 output "vault_ui_url" {
   description = "HTTPS URL of the Vault UI"
-  value       = "https://${azurerm_public_ip.pip.ip_address}:8200"
+  value       = "https://${module.network.public_ip_address}:8200"
 }
 
 output "splunk_ui_url" {
   description = "URL of the Splunk web UI"
-  value       = "http://${azurerm_public_ip.pip.ip_address}:8000"
+  value       = "http://${module.network.public_ip_address}:8000"
 }
 
 output "key_vault_name" {
   description = "Name of the Azure Key Vault holding the escrowed Vault keys"
-  value       = local.key_vault_name
+  value       = module.key_vault.key_vault_name
 }
 
 output "aks_name" {
   description = "Name of the AKS cluster"
-  value       = azurerm_kubernetes_cluster.aks.name
+  value       = module.aks.name
 }
 
 output "aks_node_rg" {
   description = "Node resource group created by AKS"
-  value       = azurerm_kubernetes_cluster.aks.node_resource_group
+  value       = module.aks.node_resource_group
 }
 
 output "acr_login_server" {
   description = "Login server of the container registry (for az acr build)"
-  value       = azurerm_container_registry.acr.login_server
+  value       = module.registry.login_server
 }
 
 output "acr_name" {
   description = "Container registry name"
-  value       = azurerm_container_registry.acr.name
+  value       = module.registry.name
 }
 
 output "auth0_app_client_id" {
   description = "Client ID of the IaC-managed SPA application"
-  value       = auth0_client.app_spa.client_id
+  value       = module.auth0.app_client_id
 }
 
 output "auth0_domain" {
@@ -54,7 +54,7 @@ output "auth0_domain" {
 
 output "auth0_vault_client_id" {
   description = "Client ID of the Vault OIDC application"
-  value       = auth0_client.vault_client.client_id
+  value       = module.auth0.vault_client_id
 }
 
 output "vm_and_splunk_password" {

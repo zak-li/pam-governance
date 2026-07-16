@@ -97,7 +97,7 @@ Ensure the following tools and credentials are ready on your deployment machine:
 2. **Set Project Variables**
    ```bash
    cp terraform/terraform.tfvars.example terraform/terraform.tfvars
-   # Edit terraform.tfvars with your Vault OIDC app credentials and your Admin IP.
+   # Edit it with your Vault OIDC app credentials and your admin IP.
    ```
 
 3. **Provision the Environment**
@@ -123,29 +123,27 @@ The underlying Azure compute resources (AKS nodes and the VM) incur costs while 
 - **Scoped Authorization**: Vault access is granular. The administrator policy only grants necessary secret engine access without blanket `path "*"` or `sudo` privileges.
 - **Identity Escalation**: Escalating to an administrator requires a specific group claim injected by Auth0 for members of the `PAM_Administrator` role.
 - **Default-Deny Networking**: Network Security Groups (NSGs) drop all inbound traffic except from an allow-listed IP. Kubernetes network policies restrict ingress purely to the gateway and mesh control plane.
-- **Hostile Browser Hardening**: The SPA enforces HTTPS, HSTS, strict Content Security Policy (CSP), Subresource Integrity (SRI), and keeps authentication tokens strictly in-memory (not in LocalStorage).
+- **Hostile Browser Hardening**: The SPA enforces HTTPS, HSTS, and a strict Content Security Policy (CSP), and keeps authentication tokens strictly in-memory (not in local storage).
 - **Session Limits**: Auth0 enforces MFA on every login, with sessions expiring after 30 minutes of inactivity or 8 hours total.
 
 ## Repository Layout
 
 ```text
 .
-├── app/                  # Angular SPA (Auth0 SSO), Dockerfile, nginx config
-│   ├── src/              # Angular sources (standalone component, config.json)
-│   ├── Dockerfile        # Multi-stage build, served by non-root nginx
-│   └── default.conf.template
-├── k8s/                  # Kubernetes manifests
-├── docs/                 # Architecture documentation
-├── scripts/              # Lifecycle automation (deploy, stop, etc.)
-├── terraform/            # Infrastructure-as-Code
-│   ├── aks.tf            # AKS Cluster
-│   ├── registry.tf       # Azure Container Registry (app image)
-│   ├── auth0.tf          # OIDC, MFA, RBAC
-│   ├── compute.tf        # Vault/Splunk VM
-│   ├── keyvault.tf       # Managed Identity & Key Vault
-│   ├── network.tf        # Networking (VNet, NSG)
-│   └── install.sh.tpl    # Bootstrapping script
-└── AUDIT.md              # Audit findings
+├── apps/
+│   └── web/                  # Angular SPA (Auth0 SSO)
+│       ├── src/              # Standalone component, runtime config.json, styles
+│       ├── Dockerfile        # Multi-stage build, served by non-root nginx
+│       └── default.conf.template
+├── kubernetes/               # Manifests: Deployment, Istio mesh, Kong, NetworkPolicy
+├── terraform/                # Infrastructure-as-Code (see terraform/README.md)
+│   ├── main.tf               # Root: resource group, shared crypto, module wiring
+│   ├── outputs.tf variables.tf providers.tf versions.tf
+│   └── modules/              # network, key-vault, compute, aks, registry, auth0
+├── scripts/                  # Lifecycle automation (deploy, stop, start, unseal, destroy)
+├── docs/                     # Architecture and diagrams
+├── .github/                  # CI pipeline and issue/PR templates
+└── Makefile                  # Developer and operator entry points
 ```
 
 ## License

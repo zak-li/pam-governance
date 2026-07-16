@@ -29,15 +29,15 @@ acr_name="$(tfout acr_name)"
 acr_server="$(tfout acr_login_server)"
 auth0_domain="$(tfout auth0_domain)"
 client_id="$(tfout auth0_app_client_id)"
-[ -n "$acr_name" ] && [ -n "$acr_server" ] || die "ACR outputs missing; run scripts/deploy-infra.sh first."
-[ -n "$auth0_domain" ] && [ -n "$client_id" ] || die "Auth0 outputs missing; run scripts/deploy-infra.sh first."
+if [ -z "$acr_name" ] || [ -z "$acr_server" ]; then die "ACR outputs missing; run scripts/deploy-infra.sh first."; fi
+if [ -z "$auth0_domain" ] || [ -z "$client_id" ]; then die "Auth0 outputs missing; run scripts/deploy-infra.sh first."; fi
 
 # --- 1. Build the Angular image in ACR (cloud build) ---
 tag="$(date +%Y%m%d%H%M%S)"
 image="${acr_server}/pam-app:${tag}"
 log "Building the Angular image in ACR: $image"
 az acr build --registry "$acr_name" --image "pam-app:${tag}" \
-  --build-arg "AUTH0_DOMAIN=${auth0_domain}" "$ROOT/app" >/dev/null
+  --build-arg "AUTH0_DOMAIN=${auth0_domain}" "$ROOT/apps/web" >/dev/null
 log "Image built."
 
 # --- 2. Istio (service mesh, mTLS) ---
@@ -57,7 +57,7 @@ log "Kong ready."
 # --- 4. Deploy the app (manifest with the image, runtime config from outputs) ---
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
-sed "s#__APP_IMAGE__#${image}#g" "$ROOT/k8s/app.yaml" > "$work/app.yaml"
+sed "s#__APP_IMAGE__#${image}#g" "$ROOT/kubernetes/app.yaml" > "$work/app.yaml"
 cat > "$work/config.json" <<EOF
 { "auth0Domain": "${auth0_domain}", "auth0ClientId": "${client_id}" }
 EOF

@@ -1,19 +1,14 @@
-# =====================================================================
-#  Auth0 - OIDC SSO, MFA and RBAC for the PAM platform
-# =====================================================================
-
+# Auth0: OIDC SSO, MFA, RBAC and session policy for the PAM platform.
 locals {
-  # Allow both http and https of the app host (Kong listens on 80 and 443).
   app_urls = distinct([
     var.app_url,
     replace(var.app_url, "http://", "https://"),
   ])
 }
 
-# --- Tenant hardening: short sessions ---
 resource "auth0_tenant" "tenant" {
-  session_lifetime      = 8   # absolute session cap: 8 hours
-  idle_session_lifetime = 0.5 # log out after 30 minutes of inactivity
+  session_lifetime      = 8
+  idle_session_lifetime = 0.5
 
   flags {
     enable_public_signup_user_exists_error = true
@@ -21,18 +16,14 @@ resource "auth0_tenant" "tenant" {
   }
 }
 
-# --- Multi-Factor Authentication (enforced everywhere) ---
 resource "auth0_guardian" "mfa" {
-  policy = "all-applications" # Force MFA on every login
-
-  otp           = true  # Authenticator app TOTP (strong)
-  email         = false # Disabled: email OTP is a weak second factor
-  recovery_code = true  # One-time recovery codes for account recovery
+  policy        = "all-applications"
+  otp           = true
+  email         = false
+  recovery_code = true
 }
 
-# --- Username/password database connection enabled for the apps ---
-# Look the default database connection up by name so the config is portable
-# across tenants (its id differs per tenant).
+# Default database connection, looked up by name so it is portable across tenants.
 data "auth0_connection" "db" {
   name = "Username-Password-Authentication"
 }
@@ -45,10 +36,7 @@ resource "auth0_connection_clients" "db_clients" {
   ]
 }
 
-# --- Optional Google social connection, with the operator's own OAuth keys ---
-# Enabled only when google_client_id is set. This avoids Auth0 shared
-# development keys (which raise a "dev keys" warning). Leave the variables empty
-# to keep login as username/password + MFA only.
+# Optional Google social connection using the operator's own OAuth keys.
 resource "auth0_connection" "google" {
   count    = var.google_client_id != "" ? 1 : 0
   name     = "google-oauth2"
@@ -66,7 +54,6 @@ resource "auth0_connection_clients" "google_clients" {
   enabled_clients = [auth0_client.app_spa.client_id]
 }
 
-# --- RBAC role assumed by privileged administrators ---
 resource "auth0_role" "pam_admin" {
   name        = "PAM_Administrator"
   description = "Privileged PAM access, mapped to the Vault pam-admin-policy"
@@ -77,53 +64,41 @@ resource "auth0_role" "pam_operator" {
   description = "Read-only operator access with short-lived SSH signing"
 }
 
-# --- Confidential application used by HashiCorp Vault (OIDC auth backend) ---
 resource "auth0_client" "vault_client" {
-  name        = "HCP Vault OIDC"
-  description = "Confidential OIDC application connecting Auth0 to Vault"
-  app_type    = "regular_web"
-
+  name              = "HCP Vault OIDC"
+  description       = "Confidential OIDC application connecting Auth0 to Vault"
+  app_type          = "regular_web"
   oidc_conformant   = true
   cross_origin_auth = false
 
-  grant_types = [
-    "authorization_code",
-    "refresh_token",
-  ]
+  grant_types = ["authorization_code", "refresh_token"]
 
   jwt_configuration {
     alg = "RS256"
   }
 
   callbacks = [
-    "https://${azurerm_public_ip.pip.ip_address}:8200/ui/vault/auth/oidc/oidc/callback",
-    "http://localhost:8250/oidc/callback", # Vault CLI login helper
+    "https://${var.public_ip_address}:8200/ui/vault/auth/oidc/oidc/callback",
+    "http://localhost:8250/oidc/callback",
   ]
 
   allowed_logout_urls = [
-    "https://${azurerm_public_ip.pip.ip_address}:8200/ui/vault/auth/oidc/oidc/callback",
+    "https://${var.public_ip_address}:8200/ui/vault/auth/oidc/oidc/callback",
   ]
 }
 
-# --- Public single-page app (app), managed as IaC ---
 resource "auth0_client" "app_spa" {
-  name        = "PAM Governance App"
-  description = "Public SPA, OIDC single sign-on with PKCE"
-  app_type    = "spa"
-
+  name            = "PAM Governance App"
+  description     = "Public SPA, OIDC single sign-on with PKCE"
+  app_type        = "spa"
   oidc_conformant = true
 
-  grant_types = [
-    "authorization_code", # PKCE
-    "refresh_token",
-  ]
+  grant_types = ["authorization_code", "refresh_token"]
 
   jwt_configuration {
     alg = "RS256"
   }
 
-  # Allow both http and https of the host (Kong exposes 80 and 443). The SPA
-  # redirect_uri is window.location.origin, which depends on the visitor scheme.
   callbacks           = local.app_urls
   allowed_logout_urls = local.app_urls
   allowed_origins     = local.app_urls
@@ -137,9 +112,6 @@ resource "auth0_client" "app_spa" {
   }
 }
 
-# --- Post-Login Action: surface roles as a namespaced claim for Vault ---
-# Vault's admin OIDC role binds on groups_claim "https://pam-governance/roles".
-# Users without PAM_Administrator get an empty list -> stay operator (least priv).
 resource "auth0_action" "add_roles" {
   name    = "Add PAM Roles To Token"
   runtime = "node18"

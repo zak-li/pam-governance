@@ -48,8 +48,8 @@ tmp/
 
 # Angular / Node build artifacts
 node_modules/
-app/dist/
-app/.angular/
+apps/web/dist/
+apps/web/.angular/
 npm-debug.log*
 
 # Local audit notes, not versioned

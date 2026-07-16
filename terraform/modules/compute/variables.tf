@@ -1,0 +1,12 @@
+variable "resource_group_name" { type = string }
+variable "location" { type = string }
+variable "admin_username" { type = string }
+variable "nic_id" { type = string }
+variable "identity_id" { type = string }
+variable "identity_client_id" { type = string }
+variable "key_vault_name" { type = string }
+variable "public_ip_address" { type = string }
+variable "ssh_public_key" { type = string }
+variable "vault_cert_pem" { type = string }
+variable "auth0_domain" { type = string }
+variable "auth0_client_id" { type = string }

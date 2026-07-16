@@ -63,14 +63,14 @@ jobs:
           curl -sSLo /tmp/kc.tgz https://github.com/yannh/kubeconform/releases/latest/download/kubeconform-linux-amd64.tar.gz
           tar -xzf /tmp/kc.tgz -C /usr/local/bin kubeconform
       - name: Validate (ignore CRDs from Istio and Kong)
-        run: kubeconform -strict -ignore-missing-schemas -summary k8s/app.yaml
+        run: kubeconform -strict -ignore-missing-schemas -summary kubernetes/app.yaml
 
   angular:
     name: Angular build
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: app
+        working-directory: apps/web
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
