@@ -67,7 +67,7 @@ graph TD
     Vault -.->|Audit Logs| Splunk
 ```
 
-*(For a deep dive into component breakdowns, request flows, and bootstrapping sequences, refer to [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) and the [sequence diagram](docs/diagrams/sequence.html).)*
+*(For a deep dive into component breakdowns, request flows, and bootstrapping sequences, refer to [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), the [architecture diagram](docs/diagrams/architecture.html), and the [sequence diagram](docs/diagrams/sequence.html).)*
 
 ## Quick Start
 
