@@ -214,130 +214,130 @@
       </text>
 
       <!-- ==================== TRUST ZONES ==================== -->
-      <!-- Azure boundary (margin 40 to inner zones) -->
-      <rect x="280" y="250" width="1580" height="520" fill="none" stroke="#0F172A" stroke-width="1.5" stroke-dasharray="2,3" />
-      <text class="svg-text zone-text" x="300" y="283">MICROSOFT AZURE</text>
+      <!-- Azure boundary (shifted right to open a wide User corridor) -->
+      <rect x="355" y="250" width="1470" height="520" fill="none" stroke="#0F172A" stroke-width="1.5" stroke-dasharray="2,3" />
+      <text class="svg-text zone-text" x="375" y="283">MICROSOFT AZURE</text>
 
       <!-- AKS cluster zone -->
-      <rect x="320" y="310" width="640" height="360" fill="none" stroke="#0F172A" stroke-width="1.5" />
-      <text class="svg-text zone-text" x="340" y="340">AKS CLUSTER  ·  ISTIO MESH (mTLS)</text>
+      <rect x="395" y="310" width="580" height="360" fill="none" stroke="#0F172A" stroke-width="1.5" />
+      <text class="svg-text zone-text" x="415" y="340">AKS CLUSTER  ·  ISTIO MESH (mTLS)</text>
 
-      <!-- Hardened VM zone (gap 80 to AKS, margin 40 to Azure) -->
-      <rect x="1040" y="310" width="780" height="360" fill="none" stroke="#0F172A" stroke-width="1.5" />
-      <text class="svg-text zone-text" x="1060" y="340">HARDENED VM  ·  NSG ALLOW-LIST</text>
+      <!-- Hardened VM zone -->
+      <rect x="1065" y="310" width="720" height="360" fill="none" stroke="#0F172A" stroke-width="1.5" />
+      <text class="svg-text zone-text" x="1085" y="340">HARDENED VM  ·  NSG ALLOW-LIST</text>
 
       <!-- ==================== NODE BOXES ==================== -->
       <g fill="#FFFFFF" stroke="#0F172A" stroke-width="2">
-        <rect x="65" y="390" width="150" height="58" />       <!-- User -->
-        <rect x="470" y="100" width="360" height="90" />      <!-- Auth0 -->
-        <rect x="350" y="375" width="580" height="64" />      <!-- Kong -->
-        <rect x="350" y="523" width="580" height="112" />     <!-- Angular SPA -->
-        <rect x="490" y="690" width="300" height="55" />      <!-- ACR -->
-        <rect x="1070" y="375" width="345" height="150" />    <!-- Vault -->
-        <rect x="1445" y="375" width="345" height="150" />    <!-- Splunk -->
-        <rect x="1072" y="690" width="340" height="55" />     <!-- Key Vault -->
-        <rect x="280" y="800" width="1580" height="52" />     <!-- Terraform strip -->
+        <rect x="55" y="390" width="150" height="58" />       <!-- User -->
+        <rect x="505" y="100" width="360" height="90" />      <!-- Auth0 -->
+        <rect x="425" y="375" width="520" height="64" />      <!-- Kong -->
+        <rect x="425" y="523" width="520" height="112" />     <!-- Angular SPA -->
+        <rect x="535" y="690" width="300" height="55" />      <!-- ACR -->
+        <rect x="1095" y="375" width="300" height="150" />    <!-- Vault -->
+        <rect x="1455" y="375" width="300" height="150" />    <!-- Splunk -->
+        <rect x="1095" y="690" width="300" height="55" />     <!-- Key Vault -->
+        <rect x="355" y="800" width="1470" height="52" />     <!-- Terraform strip -->
       </g>
 
       <!-- Client stickman (above the User box) -->
       <g stroke="#0F172A" stroke-width="2" fill="transparent">
-        <circle cx="140" cy="352" r="9" />
-        <line x1="140" y1="361" x2="140" y2="382" />
-        <line x1="123" y1="370" x2="157" y2="370" />
-        <line x1="140" y1="382" x2="129" y2="386" />
-        <line x1="140" y1="382" x2="151" y2="386" />
+        <circle cx="130" cy="352" r="9" />
+        <line x1="130" y1="361" x2="130" y2="382" />
+        <line x1="113" y1="370" x2="147" y2="370" />
+        <line x1="130" y1="382" x2="119" y2="386" />
+        <line x1="130" y1="382" x2="141" y2="386" />
       </g>
 
       <!-- ==================== NODE LABELS ==================== -->
       <g fill="#0F172A" stroke="none">
-        <text class="svg-text node-title" x="140" y="416" text-anchor="middle">Privileged User</text>
-        <text class="svg-text label-text" x="140" y="434" text-anchor="middle">Browser</text>
+        <text class="svg-text node-title" x="130" y="416" text-anchor="middle">Privileged User</text>
+        <text class="svg-text label-text" x="130" y="434" text-anchor="middle">Browser</text>
 
-        <text class="svg-text node-title" x="650" y="134" text-anchor="middle">Auth0</text>
-        <text class="svg-text label-text" x="650" y="155" text-anchor="middle">OpenID Connect  ·  SSO</text>
-        <text class="svg-text label-text" x="650" y="173" text-anchor="middle">MFA (TOTP)  ·  RBAC roles</text>
+        <text class="svg-text node-title" x="685" y="134" text-anchor="middle">Auth0</text>
+        <text class="svg-text label-text" x="685" y="155" text-anchor="middle">OpenID Connect  ·  SSO</text>
+        <text class="svg-text label-text" x="685" y="173" text-anchor="middle">MFA (TOTP)  ·  RBAC roles</text>
 
-        <text class="svg-text node-title" x="640" y="401" text-anchor="middle">Kong API Gateway</text>
-        <text class="svg-text label-text" x="640" y="422" text-anchor="middle">Public LoadBalancer  ·  HTTPS redirect  ·  rate-limit</text>
+        <text class="svg-text node-title" x="685" y="401" text-anchor="middle">Kong API Gateway</text>
+        <text class="svg-text label-text" x="685" y="422" text-anchor="middle">Public LoadBalancer  ·  HTTPS redirect  ·  rate-limit</text>
 
-        <text class="svg-text node-title" x="640" y="557" text-anchor="middle">Angular SPA (Portal)</text>
-        <text class="svg-text label-text" x="640" y="580" text-anchor="middle">non-root nginx  ·  read-only filesystem</text>
-        <text class="svg-text label-text" x="640" y="600" text-anchor="middle">strict CSP  ·  in-memory tokens  ·  /dashboard</text>
+        <text class="svg-text node-title" x="685" y="557" text-anchor="middle">Angular SPA (Portal)</text>
+        <text class="svg-text label-text" x="685" y="580" text-anchor="middle">non-root nginx  ·  read-only filesystem</text>
+        <text class="svg-text label-text" x="685" y="600" text-anchor="middle">strict CSP  ·  in-memory tokens  ·  /dashboard</text>
 
-        <text class="svg-text node-title" x="640" y="712" text-anchor="middle">Azure Container Registry</text>
-        <text class="svg-text label-text" x="640" y="730" text-anchor="middle">Angular app image</text>
+        <text class="svg-text node-title" x="685" y="712" text-anchor="middle">Azure Container Registry</text>
+        <text class="svg-text label-text" x="685" y="730" text-anchor="middle">Angular app image</text>
 
-        <text class="svg-text node-title" x="1242" y="420" text-anchor="middle">HashiCorp Vault (TLS :8200)</text>
-        <text class="svg-text label-text" x="1242" y="447" text-anchor="middle">Dynamic secrets: SSH CA · DB · Transit · KV</text>
-        <text class="svg-text label-text" x="1242" y="469" text-anchor="middle">Least-privilege RBAC  ·  OIDC login</text>
-        <text class="svg-text label-text" x="1242" y="491" text-anchor="middle">forensic audit device</text>
+        <text class="svg-text node-title" x="1245" y="418" text-anchor="middle">HashiCorp Vault (TLS :8200)</text>
+        <text class="svg-text label-text" x="1245" y="445" text-anchor="middle">Dynamic secrets: SSH CA · DB · Transit · KV</text>
+        <text class="svg-text label-text" x="1245" y="467" text-anchor="middle">Least-privilege RBAC  ·  OIDC login</text>
+        <text class="svg-text label-text" x="1245" y="489" text-anchor="middle">forensic audit device</text>
 
-        <text class="svg-text node-title" x="1617" y="428" text-anchor="middle">Splunk SIEM</text>
-        <text class="svg-text label-text" x="1617" y="456" text-anchor="middle">index pam_audit</text>
-        <text class="svg-text label-text" x="1617" y="478" text-anchor="middle">dashboard + alerts</text>
+        <text class="svg-text node-title" x="1605" y="430" text-anchor="middle">Splunk SIEM</text>
+        <text class="svg-text label-text" x="1605" y="458" text-anchor="middle">index pam_audit</text>
+        <text class="svg-text label-text" x="1605" y="480" text-anchor="middle">dashboard + alerts</text>
 
-        <text class="svg-text node-title" x="1242" y="712" text-anchor="middle">Azure Key Vault</text>
-        <text class="svg-text label-text" x="1242" y="730" text-anchor="middle">unseal keys + root token</text>
+        <text class="svg-text node-title" x="1245" y="712" text-anchor="middle">Azure Key Vault</text>
+        <text class="svg-text label-text" x="1245" y="730" text-anchor="middle">unseal keys + root token</text>
 
-        <text class="svg-text zone-text" x="1070" y="831" text-anchor="middle">INFRASTRUCTURE-AS-CODE  ·  TERRAFORM MODULES: network · key-vault · compute · aks · registry · auth0</text>
+        <text class="svg-text zone-text" x="1090" y="831" text-anchor="middle">INFRASTRUCTURE-AS-CODE  ·  TERRAFORM MODULES: network · key-vault · compute · aks · registry · auth0</text>
       </g>
 
       <!-- ==================== FLOWS (lines) ==================== -->
       <g fill="none" stroke="#0F172A" stroke-width="1.5">
-        <!-- 1. User -> Kong -->
-        <path d="M 215,407 L 348,407" />
+        <!-- 1. User -> Kong (line sits well below its label) -->
+        <path d="M 205,430 L 423,430" />
         <!-- 2. User -> Auth0 (request) -->
-        <path d="M 180,388 L 180,150 L 468,150" />
+        <path d="M 180,388 L 180,150 L 503,150" />
         <!-- 2b. Auth0 -> User (return, dashed) -->
-        <path d="M 468,172 L 200,172 L 200,388" stroke-dasharray="5,3" />
+        <path d="M 503,172 L 200,172 L 200,388" stroke-dasharray="5,3" />
         <!-- 3. Auth0 -> Vault -->
-        <path d="M 830,150 L 1242,150 L 1242,373" />
+        <path d="M 865,150 L 1245,150 L 1245,373" />
         <!-- 4. Kong -> SPA -->
-        <path d="M 640,439 L 640,521" />
+        <path d="M 685,439 L 685,521" />
         <!-- 5. ACR -> SPA (dashed) -->
-        <path d="M 640,688 L 640,637" stroke-dasharray="5,3" />
+        <path d="M 685,688 L 685,637" stroke-dasharray="5,3" />
         <!-- 6. Vault -> Splunk -->
-        <path d="M 1417,450 L 1443,450" />
+        <path d="M 1397,450 L 1453,450" />
         <!-- 7. Vault -> Key Vault -->
-        <path d="M 1242,525 L 1242,688" />
+        <path d="M 1245,525 L 1245,688" />
       </g>
 
       <!-- ==================== ARROW HEADS ==================== -->
       <g fill="#0F172A" stroke="none">
-        <polygon points="350,407 342,403 342,411" />   <!-- ->Kong -->
-        <polygon points="470,150 462,146 462,154" />   <!-- ->Auth0 -->
+        <polygon points="425,430 417,426 417,434" />   <!-- ->Kong -->
+        <polygon points="505,150 497,146 497,154" />   <!-- ->Auth0 -->
         <polygon points="200,388 196,380 204,380" />   <!-- ->User (down) -->
-        <polygon points="1242,373 1238,365 1246,365" /><!-- ->Vault (down) -->
-        <polygon points="640,523 636,515 644,515" />   <!-- ->SPA (down) -->
-        <polygon points="640,635 636,643 644,643" />   <!-- ->SPA (up) -->
-        <polygon points="1445,450 1437,446 1437,454" /><!-- ->Splunk -->
-        <polygon points="1242,690 1238,682 1246,682" /><!-- ->KeyVault (down) -->
+        <polygon points="1245,373 1241,365 1249,365" /><!-- ->Vault (down) -->
+        <polygon points="685,523 681,515 689,515" />   <!-- ->SPA (down) -->
+        <polygon points="685,635 681,643 689,643" />   <!-- ->SPA (up) -->
+        <polygon points="1455,450 1447,446 1447,454" /><!-- ->Splunk -->
+        <polygon points="1245,690 1241,682 1249,682" /><!-- ->KeyVault (down) -->
       </g>
 
-      <!-- ==================== LINK LABELS (uniform flow-text) ==================== -->
-      <!-- Horizontal links: centered, 9px above the line -->
+      <!-- ==================== LINK LABELS (uniform, each in empty space) ==================== -->
+      <!-- Horizontal links: centered, well above the line -->
       <g fill="#0F172A" stroke="none">
-        <text class="svg-text flow-text" x="282" y="398" text-anchor="middle">1 · HTTPS /dashboard</text>
-        <text class="svg-text flow-text" x="324" y="141" text-anchor="middle">2 · OIDC login (SSO + MFA)</text>
-        <text class="svg-text flow-text" x="334" y="187" text-anchor="middle">id token + roles</text>
-        <text class="svg-text flow-text" x="1036" y="141" text-anchor="middle">3 · Vault login (OIDC)</text>
-        <text class="svg-text flow-text" x="1430" y="441" text-anchor="middle">audit</text>
+        <text class="svg-text flow-text" x="310" y="405" text-anchor="middle">1 · HTTPS /dashboard</text>
+        <text class="svg-text flow-text" x="342" y="138" text-anchor="middle">2 · OIDC login (SSO + MFA)</text>
+        <text class="svg-text flow-text" x="351" y="190" text-anchor="middle">id token + roles</text>
+        <text class="svg-text flow-text" x="1055" y="138" text-anchor="middle">3 · Vault login (OIDC)</text>
+        <text class="svg-text flow-text" x="1425" y="436" text-anchor="middle">audit</text>
       </g>
-      <!-- Vertical links: left-aligned, 12px to the right of the line -->
+      <!-- Vertical links: left-aligned, to the right of the line -->
       <g fill="#0F172A" stroke="none">
-        <text class="svg-text flow-text" x="652" y="484" text-anchor="start">4 · mesh routing</text>
-        <text class="svg-text flow-text" x="652" y="666" text-anchor="start">image pull</text>
-        <text class="svg-text flow-text" x="1254" y="611" text-anchor="start">escrow</text>
+        <text class="svg-text flow-text" x="697" y="484" text-anchor="start">4 · mesh routing</text>
+        <text class="svg-text flow-text" x="697" y="666" text-anchor="start">image pull</text>
+        <text class="svg-text flow-text" x="1257" y="610" text-anchor="start">escrow</text>
       </g>
 
       <!-- Terraform provisioning (dashed, upward, in clear gutters) -->
       <g fill="none" stroke="#0F172A" stroke-width="1.5" stroke-dasharray="5,3">
-        <path d="M 350,800 L 350,772" />
-        <path d="M 1550,800 L 1550,772" />
+        <path d="M 460,800 L 460,772" />
+        <path d="M 1020,800 L 1020,772" />
       </g>
       <g fill="#0F172A" stroke="none">
-        <polygon points="350,770 346,778 354,778" />
-        <polygon points="1550,770 1546,778 1554,778" />
+        <polygon points="460,770 456,778 464,778" />
+        <polygon points="1020,770 1016,778 1024,778" />
       </g>
     </svg>
   </div>
