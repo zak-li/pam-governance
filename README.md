@@ -1,137 +1,82 @@
-<br>
+# PAM Governance
 
-<div align="center">
-  <h1>PAM Governance</h1>
-  <p>
-    <strong>Privileged Access Management and Identity Governance on a Zero-Trust Cloud Foundation</strong>
-  </p>
-  <p>
-    <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-2E77F3.svg" alt="License: MIT"></a>
-    <img src="https://img.shields.io/badge/IaC-Terraform-7B42BC.svg" alt="Terraform">
-    <img src="https://img.shields.io/badge/cloud-Azure-0078D4.svg" alt="Azure">
-    <img src="https://img.shields.io/badge/model-Zero--Trust-0CBDFC.svg" alt="Zero-Trust">
-  </p>
-</div>
+`PAM Governance` is an enterprise grade, cloud native platform that secures privileged access under a strict `Zero Trust` model. It replaces static credentials with dynamic, short lived secrets, ensuring every access request is bound to a verified identity, scoped to the least privilege, and fully audited.
 
-<br>
+## Key Capabilities
 
-## PAM Governance
+`Vault` issues short lived credentials on demand to manage dynamic secrets. `Auth0` manages identity federation by enforcing mandatory `MFA` on every login. `Splunk` runs continuous audits by capturing privileged API calls for real time observability. 
 
-> **PAM Governance** is a cloud-native platform that centralizes secrets, enforces least-privilege access, and secures authentication under a strict Zero-Trust model.
-
-It removes credential sprawl by issuing short-lived, on-demand credentials through `HashiCorp Vault`.
-
-Every login is federated through `Auth0` with mandatory Multi-Factor Authentication, and every privileged call is streamed into the `Splunk` SIEM.
-
-The whole environment is declared as code with `Terraform` and operated through a single-command lifecycle.
-
-<br>
-
-<p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset=".github/assets/architecture-dark.png">
-    <img src=".github/assets/architecture-light.png" alt="PAM Governance Architecture" width="100%">
-  </picture>
-</p>
-
-## Table of Contents
-
-[Overview](#overview) &nbsp;&middot;&nbsp; [Architecture](#architecture) &nbsp;&middot;&nbsp; [Quick Start](#quick-start) &nbsp;&middot;&nbsp; [Operations](#operations) &nbsp;&middot;&nbsp; [Security Posture](#security-posture) &nbsp;&middot;&nbsp; [Repository Layout](#repository-layout) &nbsp;&middot;&nbsp; [License](#license)
-
-## Overview
-
-PAM Governance separates public-facing workloads from privileged back-office tooling and regulates every flow between them.
-
-It replaces static, shared, and scattered credentials with access that is granted on request, bound to a named identity, scoped to least privilege, and fully recorded.
-
-Five properties define the platform:
-
-- **Encryption everywhere:** mutual TLS between meshed services via `Istio`, with hardened boundaries at the edge.
-- **Dynamic secrets:** `HashiCorp Vault` issues short-lived credentials on demand rather than storing static keys.
-- **Continuous audit:** every privileged call flows into the `Splunk` SIEM for real-time observability.
-- **Infrastructure-as-code:** provisioned by `Terraform` and rebuilt by an idempotent installer.
-- **Federated identity:** `Auth0` enforces Multi-Factor Authentication on every login.
+- `Istio` provides complete encryption to secure internal communication with `mutual TLS`. 
+- `Terraform` manages the automated, reproducible infrastructure as code.
 
 ## Architecture
 
-The platform is organized in four zones, shown in the diagram above.
+`Auth0` serves as the identity provider for `SSO` and `MFA`. The public surface uses an `AKS` cluster equipped with a `Kong` API gateway and an `Istio` mesh. The privileged core runs on a hardened VM hosting `Vault` and `Splunk`. `Azure Key Vault` provides a secure escrow for root tokens and unseal keys. 
 
-- **External environment:** the users and the `Auth0` identity provider, which performs OpenID Connect Single Sign-On with MFA and issues the tokens that carry role claims.
-- **AKS cluster:** the public surface, where the `Kong` gateway terminates traffic at the edge, the `Istio` mesh encrypts east-west traffic with mutual TLS, and the `Angular` single-page app is served by a non-root NGINX.
-- **Hardened VM:** the privileged core, running `HashiCorp Vault` for dynamic secrets and `Splunk` for audit, reachable only from an allow-listed administrator address.
-- **Azure Key Vault:** the break-glass escrow for Vault's unseal keys and root token, read through a managed identity with no stored credential.
-
-A full breakdown of components, request flows, and the bootstrap sequence is in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+For detailed diagrams and request flows, refer to the [Architecture Document](docs/ARCHITECTURE.md) and view the [Architecture Diagram](.github/assets/architecture.png). You can explore the application in the [Web App Folder](apps/web/) and infrastructure in the [Terraform Directory](terraform/).
 
 ## Quick Start
 
-### Prerequisites
+You will need an authenticated `Azure CLI`, `Terraform` v1.5 or newer, and a configured `Auth0` Tenant. Start by copying the example variables file to `terraform.tfvars` inside the [Terraform Directory](terraform/). 
 
-| Requirement | Notes |
-|---|---|
-| `Azure CLI` | Signed in with `az login` to the target subscription. |
-| `Terraform` | Version 1.5 or higher. |
-| `Auth0 M2M Application` | A Machine-to-Machine application authorized on the Auth0 Management API. |
-| `Auth0 Vault Application` | A regular web application used by Vault for OpenID Connect federation. |
-
-### Deployment
-
-Export the Auth0 Management API credentials so `Terraform` can manage the tenant, then set the project variables:
-
+Configure your variables:
 ```bash
-az login
-
+cp terraform/terraform.tfvars.example terraform/terraform.tfvars
 export AUTH0_DOMAIN="dev-xxxx.eu.auth0.com"
 export AUTH0_CLIENT_ID="<m2m_client_id>"
 export AUTH0_CLIENT_SECRET="<m2m_secret>"
-
-cp terraform/terraform.tfvars.example terraform/terraform.tfvars
 ```
 
-Provision the base infrastructure and the cluster workloads with the idempotent targets:
+Execute the infrastructure deployment command to provision the base infrastructure. Follow this with the app deployment command to install `Istio`, `Kong`, and the application on `AKS`.
 
 ```bash
-make deploy-infra   # Provisions the VM, AKS, Key Vault, and Auth0
-make deploy-app     # Deploys Istio, Kong, and the SPA
+make deploy-infra
+make deploy-app
 ```
 
-## Operations
+## Project Commands
 
-The Azure compute resources incur cost while running. The project provides a full lifecycle, so billing can be reduced to zero without data loss.
+The [Makefile](Makefile) exposes several commands to manage the lifecycle of this project.
 
-| Command | Action |
-|---|---|
-| `make stop` | Deallocates AKS and the virtual machine. Compute cost drops to zero. |
-| `make start` | Powers the environment back up. Vault restarts sealed. |
-| `make unseal` | Reads the escrowed keys from Azure Key Vault and unseals Vault. |
-| `make destroy` | Tears down all infrastructure. This action is irreversible. |
+### Deployment
 
-## Security Posture
+Provision everything:
+```bash
+make deploy
+```
 
-- **Scoped authorization:** the administrator policy grants only the secret-engine access it needs, with no blanket `path "*"` or `sudo` capability.
-- **Gated escalation:** assuming the administrator role requires the `PAM_Administrator` group claim injected by `Auth0`.
-- **Default-deny network:** Network Security Groups drop all inbound traffic except the allow-listed address, and network policies limit ingress to the gateway and the mesh.
-- **Browser hardening:** the single-page app enforces HTTPS and a strict Content Security Policy, and keeps tokens in memory rather than in local storage.
-- **Session limits:** `Auth0` enforces MFA on every login, and sessions expire after thirty minutes of inactivity or eight hours in total.
+Provision base infrastructure, then app:
+```bash
+make deploy-infra
+make deploy-app
+```
 
-## Repository Layout
+### Lifecycle Management
 
-```text
-.
-├── apps/
-│   └── web/                  # Angular SPA with Auth0 Single Sign-On
-│       ├── src/              # Standalone component, runtime config.json, styles
-│       ├── Dockerfile        # Multi-stage build, served by a non-root nginx
-│       └── default.conf.template
-├── kubernetes/               # Manifests for Deployment, Istio mesh, Kong, NetworkPolicy
-├── terraform/                # Infrastructure-as-code (see terraform/README.md)
-│   ├── main.tf               # Root: resource group, shared crypto, module wiring
-│   ├── outputs.tf variables.tf providers.tf versions.tf
-│   └── modules/              # network, key-vault, compute, aks, registry, auth0
-├── scripts/                  # Lifecycle automation for deploy, stop, start, unseal, destroy
-├── docs/                     # Architecture and reference documents
-├── .github/                  # CI pipeline and issue and pull-request templates
-└── Makefile                  # Developer and operator entry points
+Suspend and resume compute resources:
+```bash
+make stop
+make start
+```
+
+Unseal `Vault` and destroy infrastructure (irreversible):
+```bash
+make unseal
+make destroy
+```
+
+### Developer Tools
+
+Format and validate `Terraform` code:
+```bash
+make fmt
+make validate
+```
+
+Check shell scripts and view help:
+```bash
+make lint
+make help
 ```
 
 ## License
