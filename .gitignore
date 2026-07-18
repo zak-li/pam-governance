@@ -54,3 +54,6 @@ npm-debug.log*
 
 # Local audit notes, not versioned
 AUDIT.md
+
+# Private working documents, not versioned
+docs/private/

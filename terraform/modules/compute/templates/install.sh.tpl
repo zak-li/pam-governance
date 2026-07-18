@@ -370,10 +370,10 @@ PR
 # Raised IOWait thresholds (the default 1% check is too sensitive for a demo)
 docker exec -i -u root splunk bash -c 'cat > /opt/splunk/etc/system/local/health.conf' <<'HC'
 [feature:iowait]
-indicator:sum_top3_cpu_percentage:yellow = 30
-indicator:sum_top3_cpu_percentage:red = 60
-indicator:single_cpu_percentage:yellow = 40
-indicator:single_cpu_percentage:red = 70
+indicator:avg_cpu__max_perc_last_3m:yellow = 80
+indicator:avg_cpu__max_perc_last_3m:red = 90
+indicator:single_cpu__max_perc_last_3m:yellow = 80
+indicator:single_cpu__max_perc_last_3m:red = 90
 HC
 
 # Preinstalled forensic dashboard (base64-decoded to avoid heredoc/interp risk)

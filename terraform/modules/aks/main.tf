@@ -29,6 +29,10 @@ resource "azurerm_kubernetes_cluster" "aks" {
 
   role_based_access_control_enabled = true
 
+  # Azure enables the OIDC issuer server-side and refuses to disable it; match
+  # that so Terraform does not attempt a rejected update on re-apply.
+  oidc_issuer_enabled = true
+
   lifecycle {
     ignore_changes = [
       default_node_pool[0].orchestrator_version,

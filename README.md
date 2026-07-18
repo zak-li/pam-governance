@@ -1,151 +1,139 @@
+<br>
+
 <div align="center">
-  <br />
-  <h1>PAM Governance (Sentinel)</h1>
+  <h1>PAM Governance</h1>
   <p>
-    <strong>A Cloud-Native Privileged Access Management & Identity Governance Platform</strong>
+    <strong>Privileged Access Management and Identity Governance on a Zero-Trust Cloud Foundation</strong>
   </p>
   <p>
     <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-2E77F3.svg" alt="License: MIT"></a>
-    <img src="https://img.shields.io/badge/IaC-Terraform-7B42BC?logo=terraform&logoColor=white" alt="Terraform">
-    <img src="https://img.shields.io/badge/cloud-Azure-0078D4?logo=microsoftazure&logoColor=white" alt="Azure">
-    <img src="https://img.shields.io/badge/mesh-Istio-466BB0?logo=istio&logoColor=white" alt="Istio">
-    <img src="https://img.shields.io/badge/secrets-Vault-FFEC6E?logo=vault&logoColor=black" alt="Vault">
+    <img src="https://img.shields.io/badge/IaC-Terraform-7B42BC.svg" alt="Terraform">
+    <img src="https://img.shields.io/badge/cloud-Azure-0078D4.svg" alt="Azure">
     <img src="https://img.shields.io/badge/model-Zero--Trust-0CBDFC.svg" alt="Zero-Trust">
-    <img src="https://img.shields.io/badge/gateway-Kong-003459?logo=kong&logoColor=white" alt="Kong">
-    <img src="https://img.shields.io/badge/identity-Auth0-EB5424?logo=auth0&logoColor=white" alt="Auth0">
-    <img src="https://img.shields.io/badge/SIEM-Splunk-000000?logo=splunk&logoColor=white" alt="Splunk">
   </p>
 </div>
 
-<br />
+<br>
 
-> **Sentinel** centralizes secrets, enforces least-privilege access, and secures authentication across enterprise infrastructure under a strict Zero-Trust model.
+## PAM Governance
+
+> **PAM Governance** is a cloud-native platform that centralizes secrets, enforces least-privilege access, and secures authentication under a strict Zero-Trust model.
+
+It removes credential sprawl by issuing short-lived, on-demand credentials through `HashiCorp Vault`.
+
+Every login is federated through `Auth0` with mandatory Multi-Factor Authentication, and every privileged call is streamed into the `Splunk` SIEM.
+
+The whole environment is declared as code with `Terraform` and operated through a single-command lifecycle.
+
+<br>
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset=".github/assets/architecture-dark.png">
+    <img src=".github/assets/architecture-light.png" alt="PAM Governance Architecture" width="100%">
+  </picture>
+</p>
 
 ## Table of Contents
 
-- [Overview](#overview)
-- [Architecture](#architecture)
-- [Quick Start](#quick-start)
-- [Operations](#operations)
-- [Security Posture](#security-posture)
-- [Repository Layout](#repository-layout)
-- [License](#license)
+[Overview](#overview) &nbsp;&middot;&nbsp; [Architecture](#architecture) &nbsp;&middot;&nbsp; [Quick Start](#quick-start) &nbsp;&middot;&nbsp; [Operations](#operations) &nbsp;&middot;&nbsp; [Security Posture](#security-posture) &nbsp;&middot;&nbsp; [Repository Layout](#repository-layout) &nbsp;&middot;&nbsp; [License](#license)
 
 ## Overview
 
-**PAM Governance** eliminates credential sprawl through dynamic secret generation, robust Role-Based Access Control (RBAC), and OpenID Connect Single Sign-On (SSO). 
+PAM Governance separates public-facing workloads from privileged back-office tooling and regulates every flow between them.
 
-### Key Features
-- **Zero-Trust Security**: End-to-end TLS, service-to-service mutual TLS (mTLS) via `Istio`, and hardened network boundaries.
-- **Dynamic Secrets Management**: Powered by `HashiCorp Vault` to issue short-lived, on-demand credentials rather than static keys.
-- **Continuous Monitoring**: Forensic audit logging flowing seamlessly into `Splunk` SIEM for real-time observability.
-- **Infrastructure-as-Code (IaC)**: Fully provisioned via `Terraform` with an idempotent installer for one-command environment lifecycle management (build, stop, restart, destroy).
-- **Secure Authentication**: Federated through `Auth0` enforcing Multi-Factor Authentication (MFA).
+It replaces static, shared, and scattered credentials with access that is granted on request, bound to a named identity, scoped to least privilege, and fully recorded.
+
+Five properties define the platform:
+
+- **Encryption everywhere:** mutual TLS between meshed services via `Istio`, with hardened boundaries at the edge.
+- **Dynamic secrets:** `HashiCorp Vault` issues short-lived credentials on demand rather than storing static keys.
+- **Continuous audit:** every privileged call flows into the `Splunk` SIEM for real-time observability.
+- **Infrastructure-as-code:** provisioned by `Terraform` and rebuilt by an idempotent installer.
+- **Federated identity:** `Auth0` enforces Multi-Factor Authentication on every login.
 
 ## Architecture
 
-The platform separates public-facing workloads from privileged back-office tooling, strictly regulating traffic flows and access.
+The platform is organized in four zones, shown in the diagram above.
 
-- **Frontend & Gateway**: Users reach an `Angular` SPA (served by a non-root NGINX) over HTTPS. Traffic is terminated at the edge by the `Kong` API Gateway, which handles rate-limiting and redirects.
-- **Service Mesh**: `Istio` wraps all Azure Kubernetes Service (AKS) workloads, providing automatic sidecar injection and encrypting east-west traffic with mTLS.
-- **Privileged Core**: `Vault` and `Splunk` run on a hardened, isolated Azure Virtual Machine restricted to allow-listed administrator IPs. Break-glass materials (Vault unseal keys/root token) are securely escrowed in `Azure Key Vault`.
+- **External environment:** the users and the `Auth0` identity provider, which performs OpenID Connect Single Sign-On with MFA and issues the tokens that carry role claims.
+- **AKS cluster:** the public surface, where the `Kong` gateway terminates traffic at the edge, the `Istio` mesh encrypts east-west traffic with mutual TLS, and the `Angular` single-page app is served by a non-root NGINX.
+- **Hardened VM:** the privileged core, running `HashiCorp Vault` for dynamic secrets and `Splunk` for audit, reachable only from an allow-listed administrator address.
+- **Azure Key Vault:** the break-glass escrow for Vault's unseal keys and root token, read through a managed identity with no stored credential.
 
-```mermaid
-graph TD
-    User([User]) -->|HTTPS| Kong[Kong Gateway<br/>Edge & Rate Limit]
-    Kong -->|mTLS| Istio[Istio Service Mesh]
-    Istio --> App[Angular SPA<br/>Strict CSP]
-    
-    User -->|SSO / MFA| Auth0{Auth0<br/>OIDC & RBAC}
-    
-    subgraph Azure Hardened VM
-        Vault[(HashiCorp Vault<br/>Dynamic Secrets)]
-        Splunk[Splunk SIEM<br/>Audit & Forensics]
-    end
-    
-    Vault -.->|Escrow| AKV[Azure Key Vault<br/>Unseal Keys]
-    Vault -.->|Audit Logs| Splunk
-```
-
-*(For a deep dive into component breakdowns, request flows, and bootstrapping sequences, refer to [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), the [architecture diagram](docs/diagrams/architecture.html), and the [sequence diagram](docs/diagrams/sequence.html).)*
+A full breakdown of components, request flows, and the bootstrap sequence is in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
 ## Quick Start
 
 ### Prerequisites
 
-Ensure the following tools and credentials are ready on your deployment machine:
-
 | Requirement | Notes |
-|:---|:---|
-| **Azure CLI** | Signed in with `az login` to the target subscription. |
-| **Terraform** | Version `1.5.0` or higher. |
-| **Auth0 M2M App** | A Machine-to-Machine application authorized on the Auth0 Management API. |
-| **Auth0 Vault App** | A regular web application used by Vault for OIDC federation. |
+|---|---|
+| `Azure CLI` | Signed in with `az login` to the target subscription. |
+| `Terraform` | Version 1.5 or higher. |
+| `Auth0 M2M Application` | A Machine-to-Machine application authorized on the Auth0 Management API. |
+| `Auth0 Vault Application` | A regular web application used by Vault for OpenID Connect federation. |
 
 ### Deployment
 
-1. **Configure Environment Variables**
-   Export the Auth0 Management API credentials to allow Terraform to manage the tenant:
-   ```bash
-   az login
-   
-   export AUTH0_DOMAIN="dev-xxxx.eu.auth0.com"
-   export AUTH0_CLIENT_ID="<m2m_client_id>"
-   export AUTH0_CLIENT_SECRET="<m2m_secret>"
-   ```
+Export the Auth0 Management API credentials so `Terraform` can manage the tenant, then set the project variables:
 
-2. **Set Project Variables**
-   ```bash
-   cp terraform/terraform.tfvars.example terraform/terraform.tfvars
-   # Edit it with your Vault OIDC app credentials and your admin IP.
-   ```
+```bash
+az login
 
-3. **Provision the Environment**
-   Run the idempotent Make targets to deploy base infrastructure and cluster workloads:
-   ```bash
-   make deploy-infra  # Provisions VM, AKS, Key Vault, and Auth0
-   make deploy-app    # Deploys Istio, Kong, and SPA
-   ```
+export AUTH0_DOMAIN="dev-xxxx.eu.auth0.com"
+export AUTH0_CLIENT_ID="<m2m_client_id>"
+export AUTH0_CLIENT_SECRET="<m2m_secret>"
+
+cp terraform/terraform.tfvars.example terraform/terraform.tfvars
+```
+
+Provision the base infrastructure and the cluster workloads with the idempotent targets:
+
+```bash
+make deploy-infra   # Provisions the VM, AKS, Key Vault, and Auth0
+make deploy-app     # Deploys Istio, Kong, and the SPA
+```
 
 ## Operations
 
-The underlying Azure compute resources (AKS nodes and the VM) incur costs while running. The project provides a complete lifecycle management system to optimize billing without data loss.
+The Azure compute resources incur cost while running. The project provides a full lifecycle, so billing can be reduced to zero without data loss.
 
 | Command | Action |
-|:---|:---|
-| `make stop` | Deallocates AKS and the VM. Compute costs drop to **zero**. |
-| `make start` | Powers the environment back up. |
-| `make unseal` | Reads escrowed keys from Azure Key Vault and automatically unseals Vault. |
-| `make destroy` | Tears down all infrastructure. **Irreversible**. |
+|---|---|
+| `make stop` | Deallocates AKS and the virtual machine. Compute cost drops to zero. |
+| `make start` | Powers the environment back up. Vault restarts sealed. |
+| `make unseal` | Reads the escrowed keys from Azure Key Vault and unseals Vault. |
+| `make destroy` | Tears down all infrastructure. This action is irreversible. |
 
 ## Security Posture
 
-- **Scoped Authorization**: Vault access is granular. The administrator policy only grants necessary secret engine access without blanket `path "*"` or `sudo` privileges.
-- **Identity Escalation**: Escalating to an administrator requires a specific group claim injected by Auth0 for members of the `PAM_Administrator` role.
-- **Default-Deny Networking**: Network Security Groups (NSGs) drop all inbound traffic except from an allow-listed IP. Kubernetes network policies restrict ingress purely to the gateway and mesh control plane.
-- **Hostile Browser Hardening**: The SPA enforces HTTPS, HSTS, and a strict Content Security Policy (CSP), and keeps authentication tokens strictly in-memory (not in local storage).
-- **Session Limits**: Auth0 enforces MFA on every login, with sessions expiring after 30 minutes of inactivity or 8 hours total.
+- **Scoped authorization:** the administrator policy grants only the secret-engine access it needs, with no blanket `path "*"` or `sudo` capability.
+- **Gated escalation:** assuming the administrator role requires the `PAM_Administrator` group claim injected by `Auth0`.
+- **Default-deny network:** Network Security Groups drop all inbound traffic except the allow-listed address, and network policies limit ingress to the gateway and the mesh.
+- **Browser hardening:** the single-page app enforces HTTPS and a strict Content Security Policy, and keeps tokens in memory rather than in local storage.
+- **Session limits:** `Auth0` enforces MFA on every login, and sessions expire after thirty minutes of inactivity or eight hours in total.
 
 ## Repository Layout
 
 ```text
 .
 ├── apps/
-│   └── web/                  # Angular SPA (Auth0 SSO)
+│   └── web/                  # Angular SPA with Auth0 Single Sign-On
 │       ├── src/              # Standalone component, runtime config.json, styles
-│       ├── Dockerfile        # Multi-stage build, served by non-root nginx
+│       ├── Dockerfile        # Multi-stage build, served by a non-root nginx
 │       └── default.conf.template
-├── kubernetes/               # Manifests: Deployment, Istio mesh, Kong, NetworkPolicy
-├── terraform/                # Infrastructure-as-Code (see terraform/README.md)
+├── kubernetes/               # Manifests for Deployment, Istio mesh, Kong, NetworkPolicy
+├── terraform/                # Infrastructure-as-code (see terraform/README.md)
 │   ├── main.tf               # Root: resource group, shared crypto, module wiring
 │   ├── outputs.tf variables.tf providers.tf versions.tf
 │   └── modules/              # network, key-vault, compute, aks, registry, auth0
-├── scripts/                  # Lifecycle automation (deploy, stop, start, unseal, destroy)
-├── docs/                     # Architecture and diagrams
-├── .github/                  # CI pipeline and issue/PR templates
+├── scripts/                  # Lifecycle automation for deploy, stop, start, unseal, destroy
+├── docs/                     # Architecture and reference documents
+├── .github/                  # CI pipeline and issue and pull-request templates
 └── Makefile                  # Developer and operator entry points
 ```
 
 ## License
 
-This project is open-source and licensed under the [MIT License](LICENSE).
+This project is released under the [MIT License](LICENSE).
