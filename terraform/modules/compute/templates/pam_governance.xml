@@ -1,172 +1,208 @@
-<dashboard theme="dark" version="1.1">
-  <label>PAM Governance - Forensic Audit</label>
-  <description>Privileged access monitoring for HashiCorp Vault and identity governance under Zero-Trust</description>
+<dashboard version="2" theme="light">
+  <label>PAM Governance Forensic Audit</label>
+  <description>Privileged Access Monitoring, HashiCorp Vault, Zero Trust, Splunk SIEM</description>
+  <definition><![CDATA[
+{
+    "visualizations": {
+        "viz_header": {
+            "type": "splunk.markdown",
+            "options": {
+                "markdown": "# PAM Governance\n**Forensic Audit Console**\nPrivileged Access Monitoring, HashiCorp Vault, Zero Trust, Splunk SIEM",
+                "fontColor": "#0F172A"
+            }
+        },
+        "viz_sec_posture": { "type": "splunk.markdown", "options": { "markdown": "### Security Posture", "fontColor": "#475569" } },
+        "viz_sec_health":  { "type": "splunk.markdown", "options": { "markdown": "### Operational Health", "fontColor": "#475569" } },
+        "viz_sec_trends":  { "type": "splunk.markdown", "options": { "markdown": "### Trends & Distribution", "fontColor": "#475569" } },
+        "viz_sec_log":     { "type": "splunk.markdown", "options": { "markdown": "### Forensic Activity Log", "fontColor": "#475569" } },
 
-  <fieldset submitButton="false" autoRun="true">
-    <input type="time" token="tr">
-      <label>Time range</label>
-      <default>
-        <earliest>-24h@h</earliest>
-        <latest>now</latest>
-      </default>
-    </input>
-  </fieldset>
+        "viz_kpi_1": {
+            "type": "splunk.singlevalue", "title": "Audit Events",
+            "options": { "majorValue": "> primary | seriesByName('total') | lastPoint()", "majorColor": "#0F172A", "numberPrecision": 0, "useThousandSeparators": true, "trendDisplay": "off", "backgroundColor": "#FFFFFF" },
+            "dataSources": { "primary": "ds_kpi_1" }
+        },
+        "viz_kpi_2": {
+            "type": "splunk.singlevalue", "title": "Unique Identities",
+            "options": { "majorValue": "> primary | seriesByName('total') | lastPoint()", "majorColor": "#0049FF", "numberPrecision": 0, "useThousandSeparators": true, "trendDisplay": "off", "backgroundColor": "#FFFFFF" },
+            "dataSources": { "primary": "ds_kpi_2" }
+        },
+        "viz_kpi_3": {
+            "type": "splunk.singlevalue", "title": "Denials & Errors",
+            "options": { "majorValue": "> primary | seriesByName('total') | lastPoint()", "rangeColors": ["#118832", "#D93F3C"], "rangeValues": [1], "numberPrecision": 0, "useThousandSeparators": true, "trendDisplay": "off", "backgroundColor": "#FFFFFF" },
+            "dataSources": { "primary": "ds_kpi_3" }
+        },
+        "viz_kpi_4": {
+            "type": "splunk.singlevalue", "title": "SSH Certificates",
+            "options": { "majorValue": "> primary | seriesByName('total') | lastPoint()", "majorColor": "#118832", "numberPrecision": 0, "useThousandSeparators": true, "trendDisplay": "off", "backgroundColor": "#FFFFFF" },
+            "dataSources": { "primary": "ds_kpi_4" }
+        },
+        "viz_kpi_5": {
+            "type": "splunk.singlevalue", "title": "Secret Reads",
+            "options": { "majorValue": "> primary | seriesByName('total') | lastPoint()", "majorColor": "#0F172A", "numberPrecision": 0, "useThousandSeparators": true, "trendDisplay": "off", "backgroundColor": "#FFFFFF" },
+            "dataSources": { "primary": "ds_kpi_5" }
+        },
+        "viz_kpi_6": {
+            "type": "splunk.singlevalue", "title": "OIDC Logins",
+            "options": { "majorValue": "> primary | seriesByName('total') | lastPoint()", "majorColor": "#0049FF", "numberPrecision": 0, "useThousandSeparators": true, "trendDisplay": "off", "backgroundColor": "#FFFFFF" },
+            "dataSources": { "primary": "ds_kpi_6" }
+        },
+        "viz_kpi_7": {
+            "type": "splunk.singlevalue", "title": "Policy Operations",
+            "options": { "majorValue": "> primary | seriesByName('total') | lastPoint()", "majorColor": "#7C3AED", "numberPrecision": 0, "useThousandSeparators": true, "trendDisplay": "off", "backgroundColor": "#FFFFFF" },
+            "dataSources": { "primary": "ds_kpi_7" }
+        },
+        "viz_kpi_8": {
+            "type": "splunk.singlevalue", "title": "Token Operations",
+            "options": { "majorValue": "> primary | seriesByName('total') | lastPoint()", "majorColor": "#0F172A", "numberPrecision": 0, "useThousandSeparators": true, "trendDisplay": "off", "backgroundColor": "#FFFFFF" },
+            "dataSources": { "primary": "ds_kpi_8" }
+        },
 
-  <!-- ===================== KPI ROW ===================== -->
-  <row>
-    <panel>
-      <title>Audit events</title>
-      <single>
-        <search>
-          <query>index=pam_audit sourcetype=vault_audit | spath | search type=response | stats count</query>
-          <earliest>$tr.earliest$</earliest>
-          <latest>$tr.latest$</latest>
-        </search>
-        <option name="colorBy">value</option>
-        <option name="rangeColors">["0x006d9c","0x006d9c"]</option>
-        <option name="drilldown">none</option>
-        <option name="numberPrecision">0</option>
-        <option name="underLabel">privileged requests</option>
-      </single>
-    </panel>
-    <panel>
-      <title>Unique identities</title>
-      <single>
-        <search>
-          <query>index=pam_audit sourcetype=vault_audit | spath | stats dc(auth.display_name)</query>
-          <earliest>$tr.earliest$</earliest>
-          <latest>$tr.latest$</latest>
-        </search>
-        <option name="colorBy">value</option>
-        <option name="rangeColors">["0x53a051","0x53a051"]</option>
-        <option name="drilldown">none</option>
-        <option name="underLabel">authenticated actors</option>
-      </single>
-    </panel>
-    <panel>
-      <title>Denials and errors</title>
-      <single>
-        <search>
-          <query>index=pam_audit sourcetype=vault_audit | spath | search error=* error!="" | stats count</query>
-          <earliest>$tr.earliest$</earliest>
-          <latest>$tr.latest$</latest>
-        </search>
-        <option name="colorBy">value</option>
-        <option name="rangeColors">["0x53a051","0xf8be34","0xdc4e41"]</option>
-        <option name="rangeValues">[1,10]</option>
-        <option name="useColors">1</option>
-        <option name="drilldown">none</option>
-        <option name="underLabel">ACL denied</option>
-      </single>
-    </panel>
-    <panel>
-      <title>SSH certificates signed</title>
-      <single>
-        <search>
-          <query>index=pam_audit sourcetype=vault_audit | spath | search request.path="ssh/sign/*" type=response | stats count</query>
-          <earliest>$tr.earliest$</earliest>
-          <latest>$tr.latest$</latest>
-        </search>
-        <option name="colorBy">value</option>
-        <option name="rangeColors">["0x006d9c","0x006d9c"]</option>
-        <option name="drilldown">none</option>
-        <option name="underLabel">dynamic access</option>
-      </single>
-    </panel>
-  </row>
+        "viz_gauge": {
+            "type": "splunk.singlevalueradial", "title": "Audit Success Rate",
+            "options": { "min": 0, "max": 100, "rangeColors": ["#D93F3C", "#F59E0B", "#118832"], "rangeValues": [80, 95], "unit": "%", "unitPosition": "after", "backgroundColor": "#FFFFFF" },
+            "dataSources": { "primary": "ds_gauge" }
+        },
+        "viz_trend": {
+            "type": "splunk.area", "title": "Audit Activity Over Time",
+            "options": { "legendDisplay": "off", "seriesColors": ["#0049FF"], "lineWidth": 2, "areaOpacity": 0.18, "nullValueDisplay": "gaps", "yAxisTitleText": "Events" },
+            "dataSources": { "primary": "ds_trend" }
+        },
+        "viz_engines": {
+            "type": "splunk.column", "title": "Requests by Secret Engine",
+            "options": {
+                "legendDisplay": "off",
+                "seriesColors": ["#0049FF"],
+                "yAxisTitleText": "Requests",
+                "xAxisLabelRotation": 0
+            },
+            "dataSources": { "primary": "ds_engines" }
+        },
+        "viz_users": {
+            "type": "splunk.bar", "title": "Top Active Identities",
+            "options": { "legendDisplay": "off", "seriesColors": ["#7C3AED"] },
+            "dataSources": { "primary": "ds_users" }
+        },
+        "viz_paths": {
+            "type": "splunk.bar", "title": "Top Accessed Paths",
+            "options": { "legendDisplay": "off", "seriesColors": ["#0049FF"] },
+            "dataSources": { "primary": "ds_paths" }
+        },
+        "viz_ops": {
+            "type": "splunk.column", "title": "Operations Over Time",
+            "options": { "stackMode": "stacked", "legendDisplay": "right", "seriesColors": ["#0049FF", "#0EA5E9", "#118832", "#7C3AED", "#F59E0B", "#D93F3C"] },
+            "dataSources": { "primary": "ds_ops" }
+        },
+        "viz_actors": {
+            "type": "splunk.line", "title": "Unique Actors Over Time",
+            "options": { "legendDisplay": "off", "seriesColors": ["#118832"], "markerSize": 5, "lineWidth": 2, "nullValueDisplay": "gaps" },
+            "dataSources": { "primary": "ds_actors" }
+        },
+        "viz_table": {
+            "type": "splunk.table", "title": "Recent Privileged Activity",
+            "options": {
+                "count": 26,
+                "rowNumbers": true,
+                "drilldown": "none",
+                "columnFormat": {
+                    "Result": { "data": "> table | seriesByName('Result') | matchValue(resultThreshold)" }
+                }
+            },
+            "context": {
+                "resultThreshold": [
+                    { "value": "#118832", "match": "success" },
+                    { "value": "#D93F3C", "match": "denied" }
+                ]
+            },
+            "dataSources": { "primary": "ds_table" }
+        }
+    },
+    "dataSources": {
+        "ds_kpi_1": { "type": "ds.search", "name": "Audit Events",
+            "options": { "query": "index=pam_audit sourcetype=vault_audit | timechart span=1h count | append [ makeresults | eval count=0 ] | streamstats sum(count) as total | table _time total" } },
+        "ds_kpi_2": { "type": "ds.search", "name": "Unique Identities",
+            "options": { "query": "index=pam_audit sourcetype=vault_audit | sort 0 _time | streamstats dc(auth.display_name) as total | timechart span=1h last(total) as total | filldown total | append [ makeresults | eval total=0 ] | streamstats max(total) as total | table _time total" } },
+        "ds_kpi_3": { "type": "ds.search", "name": "Denials & Errors",
+            "options": { "query": "index=pam_audit sourcetype=vault_audit error=* error!=\"\" | timechart span=1h count | append [ makeresults | eval count=0 ] | streamstats sum(count) as total | table _time total" } },
+        "ds_kpi_4": { "type": "ds.search", "name": "SSH Certificates",
+            "options": { "query": "index=pam_audit sourcetype=vault_audit request.path=\"ssh/sign/*\" request.operation=update | timechart span=1h count | append [ makeresults | eval count=0 ] | streamstats sum(count) as total | table _time total" } },
+        "ds_kpi_5": { "type": "ds.search", "name": "Secret Reads",
+            "options": { "query": "index=pam_audit sourcetype=vault_audit request.path=\"secret/*\" request.operation=read | timechart span=1h count | append [ makeresults | eval count=0 ] | streamstats sum(count) as total | table _time total" } },
+        "ds_kpi_6": { "type": "ds.search", "name": "OIDC Logins",
+            "options": { "query": "index=pam_audit sourcetype=vault_audit request.path=\"auth/oidc/*\" | timechart span=1h count | append [ makeresults | eval count=0 ] | streamstats sum(count) as total | table _time total" } },
+        "ds_kpi_7": { "type": "ds.search", "name": "Policy Operations",
+            "options": { "query": "index=pam_audit sourcetype=vault_audit request.path=\"sys/policies/*\" | timechart span=1h count | append [ makeresults | eval count=0 ] | streamstats sum(count) as total | table _time total" } },
+        "ds_kpi_8": { "type": "ds.search", "name": "Token Operations",
+            "options": { "query": "index=pam_audit sourcetype=vault_audit request.path=\"auth/token/*\" | timechart span=1h count | append [ makeresults | eval count=0 ] | streamstats sum(count) as total | table _time total" } },
+        "ds_gauge": { "type": "ds.search", "name": "Success Rate",
+            "options": { "query": "index=pam_audit sourcetype=vault_audit request.operation=* | eval ok=if(error=\"\" OR isnull(error),1,0) | stats sum(ok) as ok count as total | eval score=if(total>0,round(ok/total*100,0),100) | fields score" } },
+        "ds_trend": { "type": "ds.search", "name": "Audit Activity",
+            "options": { "query": "index=pam_audit sourcetype=vault_audit | timechart span=1h count as Events" } },
+        "ds_engines": { "type": "ds.search", "name": "Engines",
+            "options": { "query": "index=pam_audit sourcetype=vault_audit request.path=* | rex field=request.path \"^(?<engine>[^/]+)\" | stats count by engine | sort - count" } },
+        "ds_users": { "type": "ds.search", "name": "Top Identities",
+            "options": { "query": "index=pam_audit sourcetype=vault_audit | eval User=coalesce('auth.display_name',\"system\") | stats count by User | sort - count | head 8" } },
+        "ds_paths": { "type": "ds.search", "name": "Top Paths",
+            "options": { "query": "index=pam_audit sourcetype=vault_audit request.path=* | stats count by request.path | sort - count | head 8" } },
+        "ds_ops": { "type": "ds.search", "name": "Operations",
+            "options": { "query": "index=pam_audit sourcetype=vault_audit request.operation=* | timechart span=1h count by request.operation" } },
+        "ds_actors": { "type": "ds.search", "name": "Unique Actors",
+            "options": { "query": "index=pam_audit sourcetype=vault_audit | timechart span=1h dc(auth.display_name) as Actors" } },
+        "ds_table": { "type": "ds.search", "name": "Recent Activity",
+            "options": { "query": "index=pam_audit sourcetype=vault_audit request.operation=* | eval Time=strftime(_time, \"%Y-%m-%d %H:%M:%S\") | eval User=coalesce('auth.display_name', \"system\") | eval Result=if(error=\"\" OR isnull(error), \"success\", \"denied\") | rename request.operation as Operation, request.path as Path, request.remote_address as Source | table Time User Operation Path Source Result | sort - Time | head 100" } }
+    },
+    "defaults": {
+        "dataSources": {
+            "ds.search": {
+                "options": { "queryParameters": { "latest": "$global_time.latest$", "earliest": "$global_time.earliest$" } }
+            }
+        }
+    },
+    "inputs": {
+        "input_global_trp": {
+            "type": "input.timerange", "title": "Time Range",
+            "options": { "token": "global_time", "defaultValue": "-7d@h,now" }
+        }
+    },
+    "layout": {
+        "type": "absolute",
+        "options": { "width": 1440, "height": 1900, "display": "auto", "backgroundColor": "#F8FAFC" },
+        "structure": [
+            { "item": "viz_header",       "type": "block", "position": { "x": 20,   "y": 15,   "w": 1400, "h": 76 } },
+            { "item": "viz_sec_posture",  "type": "block", "position": { "x": 20,   "y": 99,   "w": 1400, "h": 26 } },
 
-  <!-- ===================== TIMECHART ===================== -->
-  <row>
-    <panel>
-      <title>Audit activity over time (by operation)</title>
-      <chart>
-        <search>
-          <query>index=pam_audit sourcetype=vault_audit | spath | search type=response | timechart count by request.operation</query>
-          <earliest>$tr.earliest$</earliest>
-          <latest>$tr.latest$</latest>
-        </search>
-        <option name="charting.chart">area</option>
-        <option name="charting.chart.stackMode">stacked</option>
-        <option name="charting.legend.placement">right</option>
-        <option name="charting.drilldown">none</option>
-        <option name="height">280</option>
-      </chart>
-    </panel>
-  </row>
+            { "item": "viz_kpi_1", "type": "block", "position": { "x": 20,   "y": 129, "w": 335, "h": 150 } },
+            { "item": "viz_kpi_2", "type": "block", "position": { "x": 375,  "y": 129, "w": 335, "h": 150 } },
+            { "item": "viz_kpi_3", "type": "block", "position": { "x": 730,  "y": 129, "w": 335, "h": 150 } },
+            { "item": "viz_kpi_4", "type": "block", "position": { "x": 1085, "y": 129, "w": 335, "h": 150 } },
+            { "item": "viz_kpi_5", "type": "block", "position": { "x": 20,   "y": 289, "w": 335, "h": 150 } },
+            { "item": "viz_kpi_6", "type": "block", "position": { "x": 375,  "y": 289, "w": 335, "h": 150 } },
+            { "item": "viz_kpi_7", "type": "block", "position": { "x": 730,  "y": 289, "w": 335, "h": 150 } },
+            { "item": "viz_kpi_8", "type": "block", "position": { "x": 1085, "y": 289, "w": 335, "h": 150 } },
 
-  <!-- ===================== OPS + TOP PATHS ===================== -->
-  <row>
-    <panel>
-      <title>Operations breakdown</title>
-      <chart>
-        <search>
-          <query>index=pam_audit sourcetype=vault_audit | spath | search type=response request.operation=* | stats count by request.operation | sort - count</query>
-          <earliest>$tr.earliest$</earliest>
-          <latest>$tr.latest$</latest>
-        </search>
-        <option name="charting.chart">pie</option>
-        <option name="charting.drilldown">none</option>
-        <option name="height">300</option>
-      </chart>
-    </panel>
-    <panel>
-      <title>Most accessed secret paths</title>
-      <chart>
-        <search>
-          <query>index=pam_audit sourcetype=vault_audit | spath | search type=response request.path=* | top limit=10 request.path</query>
-          <earliest>$tr.earliest$</earliest>
-          <latest>$tr.latest$</latest>
-        </search>
-        <option name="charting.chart">bar</option>
-        <option name="charting.drilldown">none</option>
-        <option name="height">300</option>
-      </chart>
-    </panel>
-  </row>
+            { "item": "viz_sec_health", "type": "block", "position": { "x": 20, "y": 449, "w": 1400, "h": 26 } },
+            { "item": "viz_gauge", "type": "block", "position": { "x": 20,  "y": 479, "w": 453, "h": 280 } },
+            { "item": "viz_trend", "type": "block", "position": { "x": 493, "y": 479, "w": 927, "h": 280 } },
 
-  <!-- ===================== AUTH + DENIED ===================== -->
-  <row>
-    <panel>
-      <title>Authentications and auth operations (OIDC / token)</title>
-      <chart>
-        <search>
-          <query>index=pam_audit sourcetype=vault_audit | spath | search type=response request.path="auth/*" | timechart count by request.path</query>
-          <earliest>$tr.earliest$</earliest>
-          <latest>$tr.latest$</latest>
-        </search>
-        <option name="charting.chart">column</option>
-        <option name="charting.legend.placement">bottom</option>
-        <option name="charting.drilldown">none</option>
-        <option name="height">280</option>
-      </chart>
-    </panel>
-    <panel>
-      <title>Denied requests (forensic)</title>
-      <table>
-        <search>
-          <query>index=pam_audit sourcetype=vault_audit | spath | search error!="" | eval user=coalesce('auth.display_name',"anonymous") | table _time user request.operation request.path error | sort - _time | head 20</query>
-          <earliest>$tr.earliest$</earliest>
-          <latest>$tr.latest$</latest>
-        </search>
-        <option name="drilldown">none</option>
-        <option name="count">10</option>
-      </table>
-    </panel>
-  </row>
+            { "item": "viz_sec_trends", "type": "block", "position": { "x": 20, "y": 769, "w": 1400, "h": 26 } },
+            { "item": "viz_engines", "type": "block", "position": { "x": 20,  "y": 799, "w": 453, "h": 280 } },
+            { "item": "viz_users",   "type": "block", "position": { "x": 493, "y": 799, "w": 453, "h": 280 } },
+            { "item": "viz_paths",   "type": "block", "position": { "x": 966, "y": 799, "w": 454, "h": 280 } },
+            { "item": "viz_ops",     "type": "block", "position": { "x": 20,  "y": 1089, "w": 690, "h": 280 } },
+            { "item": "viz_actors",  "type": "block", "position": { "x": 730, "y": 1089, "w": 690, "h": 280 } },
 
-  <!-- ===================== RECENT ACTIVITY ===================== -->
-  <row>
-    <panel>
-      <title>Recent privileged activity</title>
-      <table>
-        <search>
-          <query>index=pam_audit sourcetype=vault_audit | spath | search type=response | eval user=coalesce('auth.display_name',"root") | table _time user request.operation request.path request.remote_address | sort - _time | head 50</query>
-          <earliest>$tr.earliest$</earliest>
-          <latest>$tr.latest$</latest>
-        </search>
-        <option name="drilldown">none</option>
-        <option name="count">20</option>
-      </table>
-    </panel>
-  </row>
+            { "item": "viz_sec_log", "type": "block", "position": { "x": 20, "y": 1379, "w": 1400, "h": 26 } },
+            { "item": "viz_table",   "type": "block", "position": { "x": 20, "y": 1409, "w": 1400, "h": 470 } }
+        ],
+        "globalInputs": [ "input_global_trp" ]
+    },
+    "title": "PAM Governance Forensic Audit",
+    "description": "Privileged access and Vault audit monitoring"
+}
+  ]]></definition>
+  <meta type="hiddenElements"><![CDATA[
+    {
+      "hideEdit": false,
+      "hideExport": false
+    }
+  ]]></meta>
 </dashboard>

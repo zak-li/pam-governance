@@ -52,6 +52,11 @@ apps/web/dist/
 apps/web/.angular/
 npm-debug.log*
 
+# Template (Parity) SVG assets and app styles, not versioned
+.github/assets/*.svg
+apps/web/src/assets/*.svg
+apps/web/src/styles.css
+
 # Local audit notes, not versioned
 AUDIT.md
 

@@ -140,3 +140,28 @@ resource "auth0_trigger_actions" "post_login" {
     display_name = auth0_action.add_roles.name
   }
 }
+
+resource "auth0_branding_theme" "default" {
+  borders {}
+
+  colors {
+    widget_background = "#ffffff"
+  }
+
+  fonts {
+    font_url = "https://cdn.jsdelivr.net/npm/@fontsource/inter@5.0.18/files/inter-latin-400-normal.woff2"
+    title {}
+    subtitle {}
+    links {}
+    input_labels {}
+    buttons_text {}
+    body_text {}
+  }
+
+  page_background {
+    background_color = "#f8fafc"
+  }
+
+  widget {}
+}
+

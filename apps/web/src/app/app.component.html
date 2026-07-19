@@ -1,41 +1,311 @@
-<div class="background-blobs">
-  <div class="blob blob-1"></div>
-  <div class="blob blob-2"></div>
-</div>
+<!-- ===================== HOME  (gov_identity.html) ===================== -->
+<ng-container *ngIf="(isAuthenticated$ | async) === false">
+  <div class="gov-home">
+    <img src="assets/logo.svg" alt="" class="bg-logo" aria-hidden="true" />
+    <img src="assets/icon.svg" alt="Logo" class="logo" />
+    <button (click)="login()">Log In</button>
+  </div>
+</ng-container>
 
-<div class="glass-container">
-  <ng-container *ngIf="(isAuthenticated$ | async) === false">
-    <div class="view active">
-      <h1>PAM Governance</h1>
-      <p class="subtitle">Zero-Trust Identity Management</p>
-      <p class="description">
-        Centralized OIDC single sign-on with multi-factor authentication.
-        Sign in to reach your secure dashboard.
-      </p>
-      <button class="btn-primary" (click)="login()">Secure Login</button>
+<!-- ===================== DASHBOARD  (dashboard.html) ===================== -->
+<ng-container *ngIf="isAuthenticated$ | async">
+  <div class="dash-root">
+    <div class="app-layout">
+      <div class="main-wrapper">
+        <!-- Header -->
+        <header class="top-header">
+          <div class="header-left">
+            <button id="menu-toggle" class="icon-btn">
+              <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none">
+                <line x1="3" y1="12" x2="21" y2="12"></line>
+                <line x1="3" y1="6" x2="21" y2="6"></line>
+                <line x1="3" y1="18" x2="21" y2="18"></line>
+              </svg>
+            </button>
+            <div class="logo" style="padding-left: 1rem; display: flex; align-items: center; gap: 0.75rem;">
+              <img src="assets/icon.svg" alt="Logo" style="width: 24px; height: 24px;">
+            </div>
+          </div>
+          <div class="header-right" style="display: flex; align-items: center; height: 100%;">
+            <div class="header-divider" style="margin-left: -1px; z-index: 10;"></div>
+
+            <!-- Account -->
+            <div class="header-section dropdown-section" style="white-space: nowrap; flex: 1; justify-content: space-between;">
+              <span>Rahali Zak's Account</span>
+              <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" style="opacity: 0.7; flex-shrink: 0;">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </div>
+
+            <div class="header-divider"></div>
+
+            <!-- Region -->
+            <div class="header-section dropdown-section" style="white-space: nowrap; flex: 1; justify-content: space-between;">
+              <span>EUR / USD</span>
+              <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" style="opacity: 0.7; flex-shrink: 0;">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </div>
+
+            <div class="header-divider"></div>
+
+            <!-- Actions -->
+            <div class="header-section dropdown-section" style="white-space: nowrap; justify-content: center; flex: none;">
+              <span>API Keys</span>
+              <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" style="opacity: 0.7; flex-shrink: 0;">
+                <line x1="7" y1="17" x2="17" y2="7"></line>
+                <polyline points="7 7 17 7 17 17"></polyline>
+              </svg>
+            </div>
+
+            <div class="header-divider"></div>
+
+            <!-- Log Out (added) -->
+            <div class="header-section dropdown-section logout-section" (click)="logout()" style="white-space: nowrap; justify-content: center; flex: none; cursor: pointer;">
+              <span>Log Out</span>
+              <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" style="flex-shrink: 0;">
+                <path d="M16 17l5-5-5-5"></path>
+                <line x1="21" y1="12" x2="9" y2="12"></line>
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+              </svg>
+            </div>
+
+            <div class="header-divider"></div>
+          </div>
+        </header>
+
+        <!-- Dashboard -->
+        <main class="dashboard-container">
+          <div class="dashboard">
+            <!-- Column 1 -->
+            <div class="panel" style="grid-column: 1; grid-row: 1; display: flex; flex-direction: column; justify-content: space-between; position: relative;">
+              <div style="position: absolute; top: 1.5rem; right: 1.5rem; display: flex; align-items: center; gap: 0.4rem; font-size: 0.9rem; color: var(--blue); cursor: pointer; z-index: 10; transition: opacity 0.2s;"
+                onmouseover="this.style.opacity='0.7'" onmouseout="this.style.opacity='1'">
+                <span>USD</span>
+                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" style="opacity: 0.8;">
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </div>
+              <div>
+                <h2>Total Foreign FX Exposure</h2>
+                <div class="subtitle">Aggregated Active Portfolios</div>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: auto;">
+                <div style="display: flex; flex-direction: column; align-items: flex-start; width: 45%;">
+                  <canvas id="miniLineChart" style="width: 100%; height: 60px;"></canvas>
+                  <div style="display: flex; justify-content: flex-end; width: 100%; font-size: 0.65rem; color: var(--text-muted); margin-top: 5px;">
+                    <span style="color: var(--red);">↓ 6.1K (12%)</span>
+                  </div>
+                </div>
+                <div class="value" style="text-align: right; margin: 0; font-size: 4.5rem; line-height: 0.85;">45.2K</div>
+              </div>
+            </div>
+
+            <div class="panel stat-panel" style="grid-column: 1; grid-row: 2;">
+              <h2>Vulnerability Score</h2>
+              <div class="subtitle">Moderate Risk Level</div>
+              <div class="value">45</div>
+            </div>
+
+            <div class="panel stat-panel red-bg" style="grid-column: 1; grid-row: 3 / span 2;">
+              <h2>Expected Shortfall (Tail Risk)</h2>
+              <div class="subtitle">95% Confidence Level</div>
+              <div class="value">9.8K</div>
+            </div>
+
+            <!-- Column 2 -->
+            <div class="panel mid-top-row" style="grid-column: 2; grid-row: 1;">
+              <div class="stat-panel-small blue-card">
+                <h2>Simulations Run</h2>
+                <div class="subtitle">Monte Carlo</div>
+                <div class="value">5,000</div>
+              </div>
+              <div class="stat-panel-small" style="background-color: transparent;">
+                <h2>Hedged Orders</h2>
+                <div class="subtitle">Confirmed on Connectors</div>
+                <div class="value">12</div>
+              </div>
+            </div>
+
+            <div class="panel blue-bg" style="grid-column: 2; grid-row: 2;">
+              <div style="display: flex; justify-content: space-between; margin-bottom: 1rem;">
+                <svg version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="24" height="24" opacity="0.9">
+                  <rect x="187.376" y="187.376" fill="rgba(255, 255, 255, 0.6)" width="324.624" height="324.624"></rect>
+                  <rect fill="rgba(255, 255, 255, 0.2)" width="324.624" height="324.624"></rect>
+                  <rect x="187.376" y="187.376" fill="#ffffff" width="137.28" height="137.28"></rect>
+                </svg>
+              </div>
+              <h2>Optimal Hedge Ratio</h2>
+              <div class="subtitle" style="color: rgba(255,255,255,0.7) !important;">Calculated via G-K Model</div>
+              <div class="value" style="text-align: right; font-size: 3.5rem;">64%</div>
+            </div>
+
+            <div class="panel stat-panel blue-card" style="grid-column: 2; grid-row: 3 / span 2;">
+              <h2>Market Scenarios (Monte Carlo)</h2>
+              <div class="subtitle">Simulating terminal rates across volatile conditions</div>
+              <div class="value">250</div>
+            </div>
+
+            <!-- Column 3 -->
+            <div class="panel" style="grid-column: 3; grid-row: 1 / span 4; display: flex; flex-direction: column;">
+              <div class="bar-header" style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div>
+                  <h2>Exposure by Currency Pair</h2>
+                  <div class="subtitle">Top Active Portfolios</div>
+                </div>
+              </div>
+              <div class="bar-chart-container" style="flex: 1; position: relative; margin-top: 1rem; display: flex; flex-direction: column;">
+                <div class="bar-grid-labels" style="display: flex; justify-content: space-between; font-size: 0.65rem; color: var(--text-muted); z-index: 0; padding-bottom: 5px;">
+                  <span>0</span><span>2.5K</span><span>5.0K</span><span>7.5K</span><span>10K</span>
+                </div>
+                <div class="bar-grid" style="position: absolute; top: 1.2rem; left: 0; right: 0; bottom: 1.5rem; display: flex; justify-content: space-between; pointer-events: none; z-index: 0;">
+                  <div style="width: 1px; background-color: var(--border); height: 100%;"></div>
+                  <div style="width: 1px; background-color: var(--border); height: 100%;"></div>
+                  <div style="width: 1px; background-color: var(--border); height: 100%;"></div>
+                  <div style="width: 1px; background-color: var(--border); height: 100%;"></div>
+                  <div style="width: 1px; background-color: var(--border); height: 100%;"></div>
+                </div>
+                <div id="bars-wrapper" style="display: flex; flex-direction: column; justify-content: space-between; flex: 1; z-index: 1; padding-bottom: 1.5rem; margin-top: 5px;">
+                  <!-- JS injected bars -->
+                </div>
+              </div>
+              <div class="bar-legend" style="display: flex; justify-content: flex-end; gap: 1rem; font-size: 0.75rem; margin-top: 1rem;">
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                  <svg viewBox="0 0 16 16" width="10" height="10" fill="none"><rect x="1" y="1" width="14" height="14" fill="var(--blue)"></rect></svg>
+                  <span style="color: var(--text-main);">EUR</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                  <svg viewBox="0 0 16 16" width="10" height="10" fill="none"><rect x="1" y="1" width="14" height="14" fill="var(--red)"></rect></svg>
+                  <span style="color: var(--text-main);">GBP</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Row 5 -->
+            <div class="panel stat-panel" style="grid-column: 1; grid-row: 5;">
+              <h2>API Connectors Active</h2>
+              <div class="subtitle">Shopify, WooCommerce, ERP</div>
+              <div class="value">2</div>
+            </div>
+
+            <div class="panel stat-panel" style="grid-column: 2; grid-row: 5;">
+              <h2>Margin Protected</h2>
+              <div class="subtitle">Hedged by Active Instruments</div>
+              <div class="value" style="color: var(--blue);">12.5%</div>
+            </div>
+
+            <div class="panel stat-panel" style="grid-column: 3; grid-row: 5;">
+              <h2>Options Priced (G-K)</h2>
+              <div class="subtitle">Garman-Kohlhagen Models</div>
+              <div class="value" style="color: var(--blue);">125</div>
+            </div>
+
+            <!-- Row 6 -->
+            <div class="panel" style="grid-column: 1 / span 2; grid-row: 6; display: flex; flex-direction: column;">
+              <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div>
+                  <h2>Volatility Clustering Heatmap</h2>
+                  <div class="subtitle">Currency pair exposure and expected shortfall</div>
+                </div>
+              </div>
+              <div class="bar-chart-container" style="flex: 1; position: relative; margin-top: 1rem; display: flex; flex-direction: column;">
+                <div class="bar-grid-labels" style="display: flex; justify-content: space-between; font-size: 0.65rem; color: var(--text-muted); z-index: 0; padding-bottom: 5px;">
+                  <span>0</span><span>1K</span><span>2K</span><span>3K</span><span>4K</span><span>5K</span>
+                </div>
+                <div class="bar-grid" style="position: absolute; top: 1.2rem; left: 0; right: 0; bottom: 0; display: flex; justify-content: space-between; pointer-events: none; z-index: 0;">
+                  <div style="width: 1px; background-color: var(--border); height: 100%;"></div>
+                  <div style="width: 1px; background-color: var(--border); height: 100%;"></div>
+                  <div style="width: 1px; background-color: var(--border); height: 100%;"></div>
+                  <div style="width: 1px; background-color: var(--border); height: 100%;"></div>
+                  <div style="width: 1px; background-color: var(--border); height: 100%;"></div>
+                  <div style="width: 1px; background-color: var(--border); height: 100%;"></div>
+                </div>
+                <div style="display: flex; flex-direction: column; justify-content: space-around; flex: 1; z-index: 1; margin-top: 5px;">
+                  <div style="display: flex; align-items: center;">
+                    <div class="bar-track" style="flex: 1;">
+                      <div style="width: 92%; background-color: var(--cyan); transition: width 1.2s;"></div>
+                      <div style="width: 4%; background-color: #d90429; transition: width 1.2s;"></div>
+                    </div>
+                  </div>
+                  <div style="display: flex; align-items: center;">
+                    <div class="bar-track" style="flex: 1;">
+                      <div style="width: 43%; background-color: var(--cyan); transition: width 1.2s;"></div>
+                      <div style="width: 5%; background-color: #d90429; transition: width 1.2s;"></div>
+                    </div>
+                  </div>
+                  <div style="display: flex; align-items: center;">
+                    <div class="bar-track" style="flex: 1;">
+                      <div style="width: 32%; background-color: var(--cyan); transition: width 1.2s;"></div>
+                      <div style="width: 2%; background-color: #d90429; transition: width 1.2s;"></div>
+                    </div>
+                  </div>
+                  <div style="display: flex; align-items: center;">
+                    <div class="bar-track" style="flex: 1;">
+                      <div style="width: 23%; background-color: var(--cyan); transition: width 1.2s;"></div>
+                      <div style="width: 1.8%; background-color: #d90429; transition: width 1.2s;"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="bar-legend" style="display: flex; justify-content: flex-end; gap: 1rem; font-size: 0.75rem; margin-top: auto; padding-top: 1rem;">
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                  <svg viewBox="0 0 16 16" width="10" height="10" fill="none"><rect x="1" y="1" width="14" height="14" fill="var(--blue)"></rect></svg>
+                  <span style="color: var(--text-main);">Exposure Volume</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                  <svg viewBox="0 0 16 16" width="10" height="10" fill="none"><rect x="1" y="1" width="14" height="14" fill="var(--red)"></rect></svg>
+                  <span style="color: var(--text-main);">Expected Shortfall</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="panel stat-panel" style="grid-column: 3; grid-row: 6;">
+              <h2>Correlated Risk Nodes</h2>
+              <div class="subtitle">Exposure Graph</div>
+              <div class="value" style="color: var(--red);">3</div>
+            </div>
+
+            <!-- Footer -->
+            <div class="footer-container" style="grid-column: 1 / span 3; grid-row: 7; display: flex; flex-direction: row; justify-content: space-between; align-items: center; padding: 1.5rem 1.5rem 2rem 1.5rem; background-color: transparent; position: relative; overflow: hidden;">
+              <img src="assets/icon.svg" alt="" style="position: absolute; top: 50%; left: 3%; transform: translateY(-50%); height: 130%; opacity: 0.04; pointer-events: none; z-index: 0;">
+              <div style="font-size: 0.75rem; color: var(--text-muted); line-height: 1.5; z-index: 1; position: relative;">
+                &copy; <span class="num">2026</span> Parity. All rights reserved.
+              </div>
+              <div style="display: flex; gap: 2rem; font-size: 0.75rem; color: var(--text-muted); z-index: 1; position: relative;">
+                <a href="#" style="color: var(--text-muted); text-decoration: none; transition: color 0.2s;" onmouseover="this.style.color='var(--cyan)'" onmouseout="this.style.color='var(--text-muted)'">Privacy Policy</a>
+                <a href="#" style="color: var(--text-muted); text-decoration: none; transition: color 0.2s;" onmouseover="this.style.color='var(--cyan)'" onmouseout="this.style.color='var(--text-muted)'">Terms of Service</a>
+                <a href="#" style="color: var(--text-muted); text-decoration: none; transition: color 0.2s;" onmouseover="this.style.color='var(--cyan)'" onmouseout="this.style.color='var(--text-muted)'">Documentation</a>
+                <a href="#" style="color: var(--text-muted); text-decoration: none; transition: color 0.2s;" onmouseover="this.style.color='var(--cyan)'" onmouseout="this.style.color='var(--text-muted)'">Support</a>
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
     </div>
-  </ng-container>
 
-  <ng-container *ngIf="isAuthenticated$ | async">
-    <div class="view active" *ngIf="user$ | async as user">
-      <h1>Access Granted</h1>
-      <p class="subtitle">PAM Governance Dashboard</p>
-
-      <div class="user-profile">
-        <img *ngIf="user.picture" id="user-avatar" [src]="user.picture" alt="User avatar">
-        <div>
-          <h2>{{ user.name }}</h2>
-          <p>{{ user.email }}</p>
+    <!-- Command Line Widget (Collapsed) -->
+    <div id="ai-chat-widget"
+      style="position: fixed; bottom: 0; right: 40px; width: 420px; background-color: #050505; border: 1px solid #222; border-bottom: none; padding: 12px 16px; cursor: grab; z-index: 9999; display: flex; justify-content: space-between; align-items: center; transition: background-color 0.2s ease, border-color 0.2s;"
+      onmouseover="this.style.backgroundColor='#0a0a0a'; this.style.borderColor='#444';"
+      onmouseout="this.style.backgroundColor='#050505'; this.style.borderColor='#222';">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <span style="color: #e0e0e0; font-family: 'IBM Plex Sans', sans-serif; font-size: 14px; font-weight: 500;">>_ Command Line</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 14px;">
+        <div style="display: flex; align-items: center; justify-content: center; opacity: 0.6; transition: opacity 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.6'">
+          <svg width="16" height="16" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" stroke-width="3" stroke="#cccccc" fill="none">
+            <polyline points="8.12 23.66 8.12 8.66 23.11 8.66"></polyline>
+            <line x1="8.12" y1="8.66" x2="55.88" y2="55.34"></line>
+            <polyline points="55.88 40.34 55.88 55.34 39.88 55.34"></polyline>
+          </svg>
+        </div>
+        <div onclick="document.getElementById('ai-chat-widget').style.display='none'; event.stopPropagation();"
+          style="display: flex; align-items: center; justify-content: center; opacity: 0.6; transition: opacity 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.6'">
+          <svg width="16" height="16" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" stroke-width="3" stroke="#cccccc" fill="none">
+            <line x1="12" y1="32" x2="52" y2="32"></line>
+          </svg>
         </div>
       </div>
-
-      <div class="status-card">
-        <div class="status-row"><span class="dot ok"></span> Secure session over OIDC single sign-on with MFA</div>
-        <div class="status-row"><span class="dot ok"></span> Access compliant with the Zero-Trust policy</div>
-        <div class="status-row"><span class="dot ok"></span> Activity recorded in the forensic audit trail</div>
-      </div>
-
-      <button class="btn-ghost" (click)="logout()">Log out</button>
     </div>
-  </ng-container>
-</div>
+  </div>
+</ng-container>

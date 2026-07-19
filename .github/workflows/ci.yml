@@ -78,6 +78,8 @@ jobs:
           node-version: 20
       - name: Install dependencies
         run: npm install --no-audit --no-fund
+      - name: Provide placeholder stylesheet (real one is not versioned)
+        run: test -f src/styles.css || echo "/* not versioned; provided at build time */" > src/styles.css
       - name: Production build
         run: npm run build
 
