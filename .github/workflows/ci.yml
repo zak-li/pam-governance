@@ -47,11 +47,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Run tfsec
-        uses: aquasecurity/tfsec-action@v1.0.3
-        with:
-          working_directory: terraform
-          soft_fail: false
+      - name: Install and run tfsec
+        run: |
+          curl -s https://raw.githubusercontent.com/aquasecurity/tfsec/master/scripts/install_linux.sh | bash
+          tfsec terraform
 
   kubeconform:
     name: Validate Kubernetes manifests
