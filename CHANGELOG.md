@@ -1,9 +1,19 @@
 # Changelog
 
 All notable changes to this project are documented here. The format follows
-Keep a Changelog, and the project aims to follow semantic versioning.
+[Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project
+adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+### Added
+- `VERSION` file as the single source of truth for the release version.
+- Release workflow (`.github/workflows/release.yml`): on a `vX.Y.Z` tag it
+  verifies the tag matches `VERSION`, extracts the matching `CHANGELOG` section,
+  and publishes a GitHub Release.
+- `make version` and `make release` targets to print and tag the current version.
+
+## [1.0.0] - 2026-07-20
 
 ### Added
 - Angular single-page app (`apps/web`) with `@auth0/auth0-angular`, built into
@@ -35,3 +45,6 @@ Keep a Changelog, and the project aims to follow semantic versioning.
   works in any tenant.
 - `deploy-app.sh` waits for the Kong public IP and syncs the Auth0 callbacks.
 - Removed dead code and unused packages from the bootstrap.
+
+[Unreleased]: https://github.com/zak-li/pam-governance/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/zak-li/pam-governance/releases/tag/v1.0.0
