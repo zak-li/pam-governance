@@ -10,6 +10,10 @@ resource "azurerm_log_analytics_workspace" "aks" {
   retention_in_days   = 30
 }
 
+# The API server is restricted below via api_server_access_profile, but the
+# allow-list is supplied through var.authorized_ip_ranges (the operator IP, no
+# static default), which tfsec cannot resolve at scan time and so flags as open.
+#tfsec:ignore:azure-container-limit-authorized-ips
 resource "azurerm_kubernetes_cluster" "aks" {
   name                = "aks-pam-governance"
   location            = var.location
