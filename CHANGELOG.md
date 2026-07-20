@@ -13,6 +13,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   and publishes a GitHub Release.
 - `make version` and `make release` targets to print and tag the current version.
 
+### Security
+- Restrict the AKS public API server to the operator IP allow-list
+  (`api_server_access_profile.authorized_ip_ranges`).
+- Enable AKS control-plane/container logging via the OMS agent into a dedicated
+  Log Analytics workspace.
+- Set `content_type` and a two-year `expiration_date` on the escrowed Key Vault
+  secrets. Clears the failing `tfsec` CI gate (was red on `main`).
+
 ## [1.0.0] - 2026-07-20
 
 ### Added
