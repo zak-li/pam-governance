@@ -40,23 +40,35 @@ resource "azurerm_key_vault_access_policy" "vm" {
   secret_permissions = ["Get", "Set", "List"]
 }
 
+# Stable expiry date for the escrowed secrets. Captured at creation and offset
+# two years, so it does not drift on every apply the way timestamp() would.
+resource "time_offset" "secret_expiry" {
+  offset_years = 2
+}
+
 resource "azurerm_key_vault_secret" "splunk_password" {
-  name         = "splunk-admin-password"
-  value        = var.splunk_password
-  key_vault_id = azurerm_key_vault.kv.id
-  depends_on   = [azurerm_key_vault_access_policy.admin]
+  name            = "splunk-admin-password"
+  value           = var.splunk_password
+  key_vault_id    = azurerm_key_vault.kv.id
+  content_type    = "text/plain; password"
+  expiration_date = time_offset.secret_expiry.rfc3339
+  depends_on      = [azurerm_key_vault_access_policy.admin]
 }
 
 resource "azurerm_key_vault_secret" "auth0_client_secret" {
-  name         = "auth0-client-secret"
-  value        = var.auth0_client_secret
-  key_vault_id = azurerm_key_vault.kv.id
-  depends_on   = [azurerm_key_vault_access_policy.admin]
+  name            = "auth0-client-secret"
+  value           = var.auth0_client_secret
+  key_vault_id    = azurerm_key_vault.kv.id
+  content_type    = "text/plain; oauth-client-secret"
+  expiration_date = time_offset.secret_expiry.rfc3339
+  depends_on      = [azurerm_key_vault_access_policy.admin]
 }
 
 resource "azurerm_key_vault_secret" "vault_tls_key" {
-  name         = "vault-tls-key"
-  value        = var.vault_tls_key
-  key_vault_id = azurerm_key_vault.kv.id
-  depends_on   = [azurerm_key_vault_access_policy.admin]
+  name            = "vault-tls-key"
+  value           = var.vault_tls_key
+  key_vault_id    = azurerm_key_vault.kv.id
+  content_type    = "application/x-pem-file"
+  expiration_date = time_offset.secret_expiry.rfc3339
+  depends_on      = [azurerm_key_vault_access_policy.admin]
 }

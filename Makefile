@@ -3,9 +3,10 @@
 
 SHELL := bash
 TF_DIR := terraform
+VERSION := $(shell cat VERSION 2>/dev/null || echo 0.0.0)
 
 .DEFAULT_GOAL := help
-.PHONY: help deploy deploy-infra deploy-app stop start unseal destroy fmt validate lint
+.PHONY: help deploy deploy-infra deploy-app stop start unseal destroy fmt validate lint version release
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -40,3 +41,12 @@ validate: ## Validate the Terraform configuration
 
 lint: ## Static-check the shell scripts (requires shellcheck)
 	shellcheck scripts/*.sh
+
+version: ## Print the current project version (from VERSION)
+	@echo $(VERSION)
+
+release: ## Tag v$(VERSION) and push it to trigger the release workflow
+	@git diff --quiet || { echo "Working tree is dirty; commit before releasing."; exit 1; }
+	@git tag -a "v$(VERSION)" -m "Release v$(VERSION)"
+	@git push origin "v$(VERSION)"
+	@echo "Pushed tag v$(VERSION) - the release workflow will publish the GitHub Release."

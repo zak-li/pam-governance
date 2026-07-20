@@ -101,9 +101,10 @@ module "compute" {
 }
 
 module "aks" {
-  source              = "./modules/aks"
-  resource_group_name = azurerm_resource_group.rg.name
-  location            = azurerm_resource_group.rg.location
+  source               = "./modules/aks"
+  resource_group_name  = azurerm_resource_group.rg.name
+  location             = azurerm_resource_group.rg.location
+  authorized_ip_ranges = ["${var.admin_source_ip}/32"]
 }
 
 module "registry" {
